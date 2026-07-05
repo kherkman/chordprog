@@ -1,0 +1,3451 @@
+
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A-molli · Sointugeneraattori</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root{
+    --bg-0:#05060a;
+    --bg-1:#0a0e18;
+    --panel:#0d1220;
+    --line:#1b2338;
+    --cyan:#37f5ff;
+    --magenta:#ff3ec9;
+    --violet:#8b5cf6;
+    --amber:#ffcf5c;
+    --text:#dbe4ff;
+    --text-dim:#5b6789;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(139,92,246,.20), transparent 60%),
+      radial-gradient(ellipse 800px 600px at 100% 10%, rgba(55,245,255,.14), transparent 55%),
+      radial-gradient(ellipse 700px 500px at 50% 120%, rgba(255,62,201,.10), transparent 55%),
+      var(--bg-0);
+    color:var(--text);
+    font-family:'Space Grotesk', sans-serif;
+    min-height:100vh;
+    padding:28px 16px 60px;
+    display:flex;
+    justify-content:center;
+  }
+
+  .stage{
+    width:100%;
+    max-width:880px;
+  }
+
+  /* ---- header ---- */
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:26px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:16px;
+  }
+  .brand{
+    font-size:13px;
+    letter-spacing:.35em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+  }
+  h1{
+    margin:2px 0 0;
+    font-size:28px;
+    font-weight:700;
+    letter-spacing:.01em;
+  }
+  h1 span{
+    background:linear-gradient(90deg,var(--cyan),var(--magenta));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .subtitle{
+    font-size:13px;
+    color:var(--text-dim);
+    max-width:260px;
+    text-align:right;
+    line-height:1.5;
+  }
+
+  /* ---- signature: harmony ring ---- */
+  .ring-wrap{
+    position:relative;
+    width:100%;
+    aspect-ratio:16/8;
+    max-height:280px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #ring{ width:100%; height:100%; display:block; }
+
+  .chord-readout{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+  }
+  .chord-name{
+    font-size:64px;
+    font-weight:700;
+    line-height:1;
+    letter-spacing:.02em;
+    transition:color .25s ease, text-shadow .25s ease;
+  }
+
+  /* ---- ring sub info below the circle ---- */
+  .ring-sub-info {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
+    margin-bottom:28px;
+    text-align:center;
+  }
+
+  .progression-pills{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    justify-content:center;
+    max-width:360px;
+  }
+  .chord-pill{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    font-weight:500;
+    padding:4px 10px;
+    border-radius:999px;
+    border:1px solid var(--pc, var(--line));
+    color:var(--pc, var(--text-dim));
+    opacity:.45;
+    transition:opacity .15s, box-shadow .15s, transform .15s;
+  }
+  .chord-pill.current{
+    opacity:1;
+    box-shadow:0 0 10px var(--pc);
+    transform:translateY(-1px);
+  }
+  .bar-divider{
+    width:1px;
+    height:16px;
+    background:var(--line);
+    margin:0 2px;
+    align-self:center;
+  }
+
+  .bar-counter{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:.1em;
+    color:var(--text-dim);
+  }
+  .bar-counter b{ color:var(--cyan); font-weight:500; }
+
+  /* ---- controls panel ---- */
+  .panel{
+    background:linear-gradient(180deg, rgba(255,255,255,.02), transparent), var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
+    margin-bottom:20px;
+  }
+  @media(max-width:640px){ .panel{ grid-template-columns:repeat(2,1fr); } }
+
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .field label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10px;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+  }
+  select, input[type=number]{
+    background:var(--bg-1);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    font-size:15px;
+    padding:10px 10px;
+    border-radius:8px;
+    outline:none;
+    transition:border-color .2s, box-shadow .2s;
+    width:100%;
+  }
+  select:focus, input[type=number]:focus{
+    border-color:var(--cyan);
+    box-shadow:0 0 0 3px rgba(55,245,255,.15);
+  }
+
+  .tempo-row{ display:flex; gap:8px; align-items:center; }
+  .tempo-row input{ flex:1; min-width:0; }
+
+  .volume-readout{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    color:var(--text-dim);
+    min-width:38px;
+    text-align:right;
+  }
+
+  input[type=range]{
+    -webkit-appearance:none;
+    appearance:none;
+    background:transparent;
+    padding:0;
+    height:16px;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:4px;
+    background:linear-gradient(90deg, var(--cyan), var(--violet));
+    border-radius:2px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:16px; height:16px;
+    border-radius:50%;
+    background:#fff;
+    box-shadow:0 0 10px var(--cyan), 0 0 0 1px var(--cyan);
+    margin-top:-6px;
+    cursor:pointer;
+  }
+  input[type=range]::-moz-range-track{
+    height:4px;
+    background:linear-gradient(90deg, var(--cyan), var(--violet));
+    border-radius:2px;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:16px; height:16px;
+    border:none;
+    border-radius:50%;
+    background:#fff;
+    box-shadow:0 0 10px var(--cyan), 0 0 0 1px var(--cyan);
+    cursor:pointer;
+  }
+
+  button{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:14px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--bg-1);
+    color:var(--text);
+    cursor:pointer;
+    transition:transform .08s ease, box-shadow .2s, border-color .2s;
+    padding:10px 14px;
+  }
+  button:active{ transform:scale(.96); }
+
+  #tapBtn{
+    color:var(--amber);
+    border-color:#3a3320;
+    white-space:nowrap;
+  }
+  #tapBtn.pulse{ box-shadow:0 0 18px rgba(255,207,92,.6); }
+
+  .transport{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:22px;
+  }
+  #playBtn, #stopBtn, #generateBtn, #advanceBtn, #metronomeBtn, #voicingBtn, #exportMidiBtn{
+    flex:1;
+    min-width:110px;
+    font-size:15px;
+    padding:13px 14px;
+    letter-spacing:.04em;
+  }
+  #playBtn{
+    background:linear-gradient(90deg, rgba(55,245,255,.16), rgba(139,92,246,.16));
+    border-color:var(--cyan);
+    color:var(--cyan);
+  }
+  #playBtn:disabled{ opacity:.35; cursor:default; box-shadow:none; }
+  #stopBtn{
+    background:linear-gradient(90deg, rgba(255,62,201,.14), rgba(255,62,201,.04));
+    border-color:var(--magenta);
+    color:var(--magenta);
+  }
+  #stopBtn:disabled{ opacity:.35; cursor:default; box-shadow:none; }
+
+  #generateBtn{
+    background:linear-gradient(90deg, rgba(255,207,92,.14), rgba(255,207,92,.03));
+    border-color:var(--amber);
+    color:var(--amber);
+  }
+
+  #advanceBtn{
+    background:linear-gradient(90deg, rgba(139,92,246,.16), rgba(139,92,246,.03));
+    border-color:var(--violet);
+    color:var(--violet);
+  }
+
+  #metronomeBtn{
+    color:var(--text-dim);
+    border-color:var(--line);
+  }
+  #metronomeBtn.active{
+    color:#fff;
+    border-color:#fff;
+    background:linear-gradient(90deg, rgba(255,255,255,.14), rgba(255,255,255,.03));
+    box-shadow:0 0 16px rgba(255,255,255,.35);
+  }
+
+  #voicingBtn{
+    color:var(--text-dim);
+    border-color:var(--line);
+  }
+  #voicingBtn.active{
+    color:var(--cyan);
+    border-color:var(--cyan);
+    background:linear-gradient(90deg, rgba(55,245,255,.14), rgba(55,245,255,.03));
+    box-shadow:0 0 16px rgba(55,245,255,.35);
+  }
+
+  #exportMidiBtn{
+    background:linear-gradient(90deg, rgba(55,245,255,0.08), rgba(139,92,246,0.08));
+    border-color:var(--text-dim);
+    color:var(--text);
+  }
+
+  /* ---- diatonic chords selector section ---- */
+  .chord-selector-section{
+    background:linear-gradient(180deg, rgba(255,255,255,.02), transparent), var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px;
+    margin-bottom:20px;
+  }
+  .chord-selector-wrap{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:8px;
+  }
+  .chord-select-btn {
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:500;
+    font-size:14px;
+    padding:10px 16px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:rgba(10, 14, 24, 0.6);
+    color:rgba(91, 103, 137, 0.6);
+    cursor:pointer;
+    transition:transform .08s ease, box-shadow .2s, border-color .2s, background .2s, color .2s;
+  }
+  .chord-select-btn.active {
+    border-color:var(--c-theme);
+    background:linear-gradient(180deg, rgba(255,255,255,0.04), transparent), var(--panel);
+    color:var(--text);
+    box-shadow:0 0 14px var(--c-theme);
+    font-weight:600;
+  }
+  .chord-select-btn:active {
+    transform:scale(0.96);
+  }
+
+  .btn-small {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--bg-1);
+    color: var(--text);
+    cursor: pointer;
+    transition: transform .08s ease, box-shadow .2s, border-color .2s;
+  }
+  .btn-small:active {
+    transform: scale(0.95);
+  }
+
+  /* ---- HOVER ---- */
+  @media (hover: hover) {
+    #tapBtn:hover{ border-color:var(--amber); box-shadow:0 0 12px rgba(255,207,92,.25); }
+    #playBtn:hover{ box-shadow:0 0 20px rgba(55,245,255,.35); }
+    #stopBtn:hover{ box-shadow:0 0 20px rgba(255,62,201,.3); }
+    #generateBtn:hover{ box-shadow:0 0 20px rgba(255,207,92,.3); }
+    #advanceBtn:hover{ box-shadow:0 0 20px rgba(139,92,246,.3); }
+    #metronomeBtn:hover{ box-shadow:0 0 14px rgba(219,228,255,.15); }
+    #voicingBtn:hover{ box-shadow:0 0 14px rgba(55,245,255,.15); }
+    #exportMidiBtn:hover{ box-shadow:0 0 14px rgba(219,228,255,.15); border-color:#fff; }
+    .btn-small:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px rgba(55,245,255,.2);
+    }
+    .chord-select-btn:hover {
+      border-color:var(--c-theme);
+      color:var(--text);
+      box-shadow:0 0 10px rgba(255,255,255,0.03);
+    }
+  }
+
+  footer{
+    margin-top:22px;
+    text-align:center;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color:var(--text-dim);
+    letter-spacing:.06em;
+  }
+
+  select option{ background:var(--bg-1); color:var(--text); }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <header>
+    <div>
+      <div class="brand">Web Audio · Web MIDI</div>
+      <h1>A-molli <span>sointugeneraattori</span></h1>
+    </div>
+    <div class="subtitle">Am – F – G muodostavat sointuprogression, jonka pituuden ja soittotyylin päätät itse. Generate new arpoo yhden soinnun per tahti, Advance useita sointuja per tahti etupotkuilla ja viiveillä.</div>
+  </header>
+
+  <div class="transport">
+    <button id="playBtn">▶ Play</button>
+    <button id="stopBtn" disabled>■ Stop</button>
+    <button id="generateBtn" type="button">⟳ Generate new</button>
+    <button id="advanceBtn" type="button">⚡ Advance</button>
+    <button id="metronomeBtn" type="button">◆ Metronome</button>
+    <button id="voicingBtn" type="button" class="active">⚛ Voicing: ON</button>
+    <button id="exportMidiBtn" type="button">💾 Export MIDI</button>
+  </div>
+
+  <div class="ring-wrap">
+    <canvas id="ring"></canvas>
+    <div class="chord-readout">
+      <div class="chord-name idle" id="chordName">–</div>
+    </div>
+  </div>
+
+  <!-- Tahtitiedot siirretty ympyrän alapuolelle -->
+  <div class="ring-sub-info">
+    <div class="progression-pills" id="progressionPills"></div>
+    <div class="bar-counter" id="barCounter">Tahti – / –</div>
+  </div>
+
+  <div class="panel">
+    <div class="field">
+      <label for="timeSig">Tahtilaji</label>
+      <select id="timeSig">
+        <option value="4/4" selected>4/4</option>
+        <option value="3/4">3/4</option>
+        <option value="2/4">2/4</option>
+        <option value="6/8">6/8</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="tempo">Tempo (BPM)</label>
+      <div class="tempo-row">
+        <input type="number" id="tempo" min="40" max="240" value="120">
+        <button id="tapBtn" type="button">Tap</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="barsCount">Tahtien määrä</label>
+      <input type="number" id="barsCount" min="1" max="32" value="4">
+    </div>
+
+    <div class="field">
+      <label for="advanceDensity">Advance-tiheys</label>
+      <select id="advanceDensity">
+        <option value="2">Puolinuotti (1/2)</option>
+        <option value="1">Neljäsosanuotti (1/4)</option>
+        <option value="0.5" selected>Kahdeksasosanuotti (1/8)</option>
+        <option value="0.25">Kuudestoistaosanuotti (1/16)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="maxChords">Soinnut / tahti (Max)</label>
+      <input type="number" id="maxChords" min="1" max="8" value="3">
+    </div>
+
+    <div class="field">
+      <label for="styleSelect">Soittotyyli</label>
+      <select id="styleSelect">
+        <option value="block">Blokkisoinnut</option>
+        <option value="arpUp">Arpeggio ylös</option>
+        <option value="arpDown">Arpeggio alas</option>
+        <option value="broken">Murrettu sointu</option>
+        <option value="inversion">Käännös + oktaavi</option>
+        <option value="pulse">Sykkivä komppi</option>
+        <option value="random">Satunnainen (vaihtuu tahdeittain)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="volume">Voluumi</label>
+      <div class="tempo-row">
+        <input type="range" id="volume" min="0" max="100" value="85">
+        <span id="volumeValue" class="volume-readout">85%</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="midiOut">MIDI Out</label>
+      <select id="midiOut">
+        <option value="">Haetaan laitteita…</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- A-mollin diatoninen sointuvalitsin sovelluksen alalaidassa -->
+  <div class="chord-selector-section">
+    <div class="field">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
+        <label style="font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0; display:inline-block;">Valitse soinnut</label>
+        
+        <div class="transpose-controls" style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.1em;">Sävelala (Transpose):</span>
+          <button id="transposeDownBtn" class="btn-small" type="button">-</button>
+          <span id="transposeLabel" style="font-family:'JetBrains Mono', monospace; font-size:13px; min-width:32px; text-align:center; font-weight:700; color:var(--cyan);">+0</span>
+          <button id="transposeUpBtn" class="btn-small" type="button">+</button>
+        </div>
+      </div>
+      <div id="chordSelector" class="chord-selector-wrap"></div>
+    </div>
+  </div>
+
+  <!-- Melodia On/Off -osio -->
+  <div class="chord-selector-section" style="margin-top: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
+      <label style="font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0; display:inline-block;">Melodia</label>
+      <button id="melodyToggleBtn" class="btn-small" type="button" style="font-size: 13px; padding: 6px 16px;">Melodia: OFF</button>
+    </div>
+    
+    <div id="melodyControlsWrap" style="display: none; flex-direction: column; gap: 16px; margin-top: 14px;">
+      <!-- Sallitut melodian sävelasteet -->
+      <div>
+        <span style="font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.1em; display: block; margin-bottom: 8px;">Sallitut sävelet (asteikon askeleet soinnun juuresta):</span>
+        <div id="melodyPitchContainer" class="chord-selector-wrap"></div>
+      </div>
+      
+      <!-- Sekvensserin globaalit asetukset -->
+      <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.1em;">Askelten määrä:</span>
+          <input type="number" id="melodyStepsInput" min="1" max="32" value="8" style="width: 70px; padding: 6px 10px; font-size: 14px; background: var(--bg-1); border: 1px solid var(--line); color: var(--text); font-family: 'JetBrains Mono', monospace; border-radius: 6px;">
+        </div>
+        
+        <!-- Toistohallinnan input -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.1em;">Kierrot (toisto):</span>
+          <input type="number" id="melodyRepetitionInput" min="1" max="10" value="1" style="width: 60px; padding: 6px 10px; font-size: 14px; background: var(--bg-1); border: 1px solid var(--line); color: var(--text); font-family: 'JetBrains Mono', monospace; border-radius: 6px;">
+        </div>
+
+        <button id="melodyMotifBtn" class="btn-small" type="button" style="color: var(--cyan); border-color: rgba(55,245,255,0.3); margin-left: auto;">Motiivi: ON</button>
+        <button id="randomizeAllMelodiesBtn" class="btn-small" type="button" style="color: var(--cyan); border-color: rgba(55,245,255,0.3);">Arvo kaikki rytmit</button>
+      </div>
+      
+      <!-- Sekvensseririvit jokaiselle tahdille -->
+      <div id="melodySequencerRows" style="display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--line); padding-top: 14px;"></div>
+    </div>
+  </div>
+
+  <!-- Basso On/Off -osio -->
+  <div class="chord-selector-section" style="margin-top: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
+      <label style="font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0; display:inline-block;">Basso</label>
+      <button id="bassToggleBtn" class="btn-small" type="button" style="font-size: 13px; padding: 6px 16px;">Basso: OFF</button>
+    </div>
+    
+    <div id="bassControlsWrap" style="display: none; flex-direction: column; gap: 16px; margin-top: 14px;">
+      <!-- Sallitut basson sävelasteet -->
+      <div>
+        <span style="font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.1em; display: block; margin-bottom: 8px;">Sallitut sävelet (asteikon askeleet soinnun juuresta, 2 oktaavia alempaa):</span>
+        <div id="bassPitchContainer" class="chord-selector-wrap"></div>
+      </div>
+      
+      <!-- Sekvensserin globaalit asetukset -->
+      <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.1em;">Askelten määrä:</span>
+          <input type="number" id="bassStepsInput" min="1" max="32" value="8" style="width: 70px; padding: 6px 10px; font-size: 14px; background: var(--bg-1); border: 1px solid var(--line); color: var(--text); font-family: 'JetBrains Mono', monospace; border-radius: 6px;">
+        </div>
+        
+        <!-- Toistohallinnan input -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.1em;">Kierrot (toisto):</span>
+          <input type="number" id="bassRepetitionInput" min="1" max="10" value="1" style="width: 60px; padding: 6px 10px; font-size: 14px; background: var(--bg-1); border: 1px solid var(--line); color: var(--text); font-family: 'JetBrains Mono', monospace; border-radius: 6px;">
+        </div>
+
+        <button id="bassPatternLockBtn" class="btn-small" type="button" style="color: var(--magenta); border-color: rgba(255,62,201,0.3); margin-left: auto;">Kuvio lukittu: ON</button>
+        <button id="randomizeAllBassBtn" class="btn-small" type="button" style="color: var(--magenta); border-color: rgba(255,62,201,0.3);">Arvo kaikki rytmit</button>
+      </div>
+      
+      <!-- Sekvensseririvit jokaiselle tahdille -->
+      <div id="bassSequencerRows" style="display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--line); padding-top: 14px;"></div>
+    </div>
+  </div>
+
+  <!-- Rummut On/Off -osio -->
+  <div class="chord-selector-section" style="margin-top: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
+      <label style="font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0; display:inline-block;">Rummut</label>
+      <button id="drumsToggleBtn" class="btn-small" type="button" style="font-size: 13px; padding: 6px 16px;">Rummut: OFF</button>
+    </div>
+    
+    <div id="drumsControlsWrap" style="display: none; flex-direction: column; gap: 16px; margin-top: 14px;">
+      <!-- Sekvensserin globaalit asetukset -->
+      <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.1em;">Askelten määrä:</span>
+          <input type="number" id="drumsStepsInput" min="1" max="32" value="8" style="width: 70px; padding: 6px 10px; font-size: 14px; background: var(--bg-1); border: 1px solid var(--line); color: var(--text); font-family: 'JetBrains Mono', monospace; border-radius: 6px;">
+        </div>
+        
+        <!-- Toistohallinnan input -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.1em;">Kierrot (toisto):</span>
+          <input type="number" id="drumsRepetitionInput" min="1" max="10" value="1" style="width: 60px; padding: 6px 10px; font-size: 14px; background: var(--bg-1); border: 1px solid var(--line); color: var(--text); font-family: 'JetBrains Mono', monospace; border-radius: 6px;">
+        </div>
+
+        <button id="drumsPatternLockBtn" class="btn-small" type="button" style="color: var(--amber); border-color: rgba(255,207,92,0.3); margin-left: auto;">Kuvio lukittu: ON</button>
+        <button id="randomizeAllDrumsBtn" class="btn-small" type="button" style="color: var(--amber); border-color: rgba(255,207,92,0.3);">Arvo kaikki rytmit</button>
+      </div>
+      
+      <!-- Sekvensseririvit jokaiselle tahdille (Hi-hat, Snare, Kick) -->
+      <div id="drumsSequencerRows" style="display: flex; flex-direction: column; gap: 20px; border-top: 1px solid var(--line); padding-top: 14px;"></div>
+    </div>
+  </div>
+
+  <footer>Sisäänrakennettu additiivinen piano-synteesi &nbsp;·&nbsp; ei näytepohjaista ääntä</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =========================================================
+     MUSIIKKITEORIA: Diatoniasta triad-sointujen perustiedot
+     ========================================================= */
+  const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+  const ALL_CHORDS = [
+    { name:'Am',   baseMidi:[57,60,64], baseRootPC:9,  type:'m',   color:'#37f5ff', midi:[], rootPC:9 }, // i (A minor)
+    { name:'Bdim', baseMidi:[59,62,65], baseRootPC:11, type:'dim', color:'#ff8b3e', midi:[], rootPC:11 }, // ii° (B diminished)
+    { name:'C',    baseMidi:[60,64,67], baseRootPC:0,  type:'',    color:'#3eff8b', midi:[], rootPC:0 }, // III (C major)
+    { name:'Dm',   baseMidi:[50,53,57], baseRootPC:2,  type:'m',   color:'#ffcf5c', midi:[], rootPC:2 }, // iv (D minor)
+    { name:'Em',   baseMidi:[52,55,59], baseRootPC:4,  type:'m',   color:'#3e5cff', midi:[], rootPC:4 }, // v (E minor)
+    { name:'F',    baseMidi:[53,57,60], baseRootPC:5,  type:'',    color:'#8b5cf6', midi:[], rootPC:5 }, // VI (F major)
+    { name:'G',    baseMidi:[55,59,62], baseRootPC:7,  type:'',    color:'#ff3ec9', midi:[], rootPC:7 }  // VII (G major)
+  ];
+
+  let selectedChordIndices = [0, 5, 6]; 
+  let transposeOffset = 0; // Transponointi puolisävelaskelina (-12 ... +12)
+
+  // Melodian globaalit tilamuuttujat
+  let melodyOn = false;
+  let melodyMotifOn = true;
+  let selectedMelodyDegrees = [8, 10, 12, 13, 14];
+  let melodySequences = [];
+  let cachedMelodyPitches = [];
+
+  let nextMelodyStepTime = 0;
+  let melodyStepCursor = 0;
+  let melodyBarCursor = 0;
+
+  // Basson globaalit tilamuuttujat
+  let bassOn = false;
+  let bassPatternLockOn = true;
+  let selectedBassDegrees = [1, 5, 8]; // Root, Fifth, Octave
+  let bassSequences = [];
+  let cachedBassPitches = [];
+
+  let nextBassStepTime = 0;
+  let bassStepCursor = 0;
+  let bassBarCursor = 0;
+
+  // Rumputilamuuttujat
+  let drumsOn = false;
+  let drumsPatternLockOn = true;
+  let drumSequences = { kick: [], snare: [], hihat: [] };
+  let nextDrumStepTime = 0;
+  let drumStepCursor = 0;
+  let drumBarCursor = 0;
+
+  function getActiveChords() {
+    return ALL_CHORDS.filter((c, idx) => selectedChordIndices.includes(idx));
+  }
+
+  function applyTransposition(semitones) {
+    transposeOffset = Math.max(-12, Math.min(12, transposeOffset + semitones));
+    document.getElementById('transposeLabel').textContent = (transposeOffset >= 0 ? '+' : '') + transposeOffset;
+    
+    ALL_CHORDS.forEach(chord => {
+      chord.midi = chord.baseMidi.map(note => note + transposeOffset);
+      chord.rootPC = (chord.baseRootPC + transposeOffset + 12) % 12;
+      chord.name = NOTE_NAMES[chord.rootPC] + chord.type;
+    });
+  }
+
+  function midiToFreq(m){ return 440 * Math.pow(2, (m-69)/12); }
+
+  function smoothVoiceChord(midiNotes, previousMidiNotes) {
+    if (!previousMidiNotes || previousMidiNotes.length === 0) {
+      return midiNotes.slice();
+    }
+    const prevAvg = previousMidiNotes.reduce((a, b) => a + b, 0) / previousMidiNotes.length;
+    return midiNotes.map(note => {
+      return note + 12 * Math.round((prevAvg - note) / 12);
+    });
+  }
+
+  function partition(S, K) {
+    if (K <= 1 || S <= 1) return [S];
+    if (K >= S) {
+      return Array(S).fill(1);
+    }
+    
+    const dividers = new Set();
+    let attempts = 0;
+    while (dividers.size < K - 1 && attempts < 100) {
+      const r = 1 + Math.floor(Math.random() * (S - 1));
+      dividers.add(r);
+      attempts++;
+    }
+    
+    const sortedDividers = Array.from(dividers).sort((a, b) => a - b);
+    const parts = [];
+    let prev = 0;
+    for (const d of sortedDividers) {
+      parts.push(d - prev);
+      prev = d;
+    }
+    parts.push(S - prev);
+    return parts;
+  }
+
+  /* =========================================================
+     VARIAATIOT
+     ========================================================= */
+  const VARIATIONS = [
+    {
+      value:'block',
+      name:'Blokkisoinnut',
+      gen(midi, beats, beatDur){
+        return [{ startOffset:0, duration:beats*beatDur*0.92, notes:midi.slice(), velocity:0.85 }];
+      }
+    },
+    {
+      value:'arpUp',
+      name:'Arpeggio ylös',
+      gen(midi, beats, beatDur){
+        const ext = midi.concat(midi.map(n=>n+12));
+        const steps = beats*2;
+        const evs = [];
+        for(let i=0;i<steps;i++){
+          evs.push({ startOffset:i*(beatDur/2), duration:(beatDur/2)*0.88, notes:[ext[i%ext.length]], velocity:0.62 });
+        }
+        return evs;
+      }
+    },
+    {
+      value:'arpDown',
+      name:'Arpeggio alas',
+      gen(midi, beats, beatDur){
+        const ext = midi.concat(midi.map(n=>n+12)).reverse();
+        const steps = beats*2;
+        const evs = [];
+        for(let i=0;i<steps;i++){
+          evs.push({ startOffset:i*(beatDur/2), duration:(beatDur/2)*0.88, notes:[ext[i%ext.length]], velocity:0.62 });
+        }
+        return evs;
+      }
+    },
+    {
+      value:'broken',
+      name:'Murrettu sointu',
+      gen(midi, beats, beatDur){
+        const evs = [];
+        for(let i=0;i<beats;i++){
+          if(i % 2 === 0){
+            evs.push({ startOffset:i*beatDur, duration:beatDur*0.85, notes:[midi[0]], velocity:0.8 });
+          } else {
+            evs.push({ startOffset:i*beatDur, duration:beatDur*0.85, notes:midi.slice(1), velocity:0.6 });
+          }
+        }
+        return evs;
+      }
+    },
+    {
+      value:'inversion',
+      name:'Käännös + oktaavi',
+      gen(midi, beats, beatDur){
+        const voiced = [midi[1], midi[2], midi[0]+12, midi[1]+12];
+        return [{ startOffset:0, duration:beats*beatDur*0.9, notes:voiced, velocity:0.75 }];
+      }
+    },
+    {
+      value:'pulse',
+      name:'Sykkivä komppi',
+      gen(midi, beats, beatDur){
+        const evs = [];
+        for(let i=0;i<beats;i++){
+          evs.push({ startOffset:i*beatDur, duration:beatDur*0.32, notes:midi.slice(), velocity:0.8 });
+        }
+        return evs;
+      }
+    },
+  ];
+  const VARIATIONS_BY_VALUE = {};
+  VARIATIONS.forEach(v=> VARIATIONS_BY_VALUE[v.value] = v);
+
+  /* =========================================================
+     AUDIO: piano-synteesi + reverb
+     ========================================================= */
+  let audioCtx = null, masterGain = null, reverbNode = null;
+  let midiPerfOffset = 0;
+  const activeOscillators = new Set();
+  let currentVolume = 0.85;
+
+  let activeNotesToDraw = [];
+  let autoVoicing = true;
+  let lastPlayedMidiNotes = [];
+
+  function initVolumeControl(){
+    const slider = document.getElementById('volume');
+    const readout = document.getElementById('volumeValue');
+    currentVolume = parseInt(slider.value, 10) / 100;
+    slider.addEventListener('input', ()=>{
+      const pct = parseInt(slider.value, 10);
+      currentVolume = pct / 100;
+      readout.textContent = pct + '%';
+      if(masterGain && audioCtx){
+        masterGain.gain.setTargetAtTime(currentVolume, audioCtx.currentTime, 0.015);
+      }
+    });
+  }
+
+  function buildReverb(ctx){
+    const conv = ctx.createConvolver();
+    const len = ctx.sampleRate * 1.8;
+    const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for(let ch=0; ch<2; ch++){
+      const data = buf.getChannelData(ch);
+      for(let i=0;i<len;i++){
+        data[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 2.4);
+      }
+    }
+    conv.buffer = buf;
+    return conv;
+  }
+
+  function initAudio(){
+    if(audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    midiPerfOffset = performance.now() - audioCtx.currentTime*1000;
+
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = currentVolume;
+
+    const compressor = audioCtx.createDynamicsCompressor();
+    compressor.threshold.value = -18;
+    compressor.knee.value = 24;
+    compressor.ratio.value = 3;
+
+    const dry = audioCtx.createGain(); dry.gain.value = 0.78;
+    const wet = audioCtx.createGain(); wet.gain.value = 0.30;
+    reverbNode = buildReverb(audioCtx);
+
+    masterGain.connect(dry);
+    masterGain.connect(reverbNode);
+    reverbNode.connect(wet);
+    dry.connect(compressor);
+    wet.connect(compressor);
+    compressor.connect(audioCtx.destination);
+  }
+
+  const HARMONICS = [
+    { mult:1, amp:1.00 },
+    { mult:2, amp:0.52 },
+    { mult:3, amp:0.30 },
+    { mult:4, amp:0.17 },
+    { mult:5, amp:0.10 },
+    { mult:6, amp:0.05 },
+  ];
+
+  function playPianoNote(freq, startTime, duration, velocity){
+    const gainMain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(5200, startTime);
+    filter.frequency.exponentialRampToValueAtTime(1100, startTime + duration + 0.8);
+    gainMain.connect(filter);
+    filter.connect(masterGain);
+
+    HARMONICS.forEach(h=>{
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq * h.mult * (1 + 0.0006*h.mult), startTime);
+
+      const g = audioCtx.createGain();
+      const peak = velocity * h.amp * 0.5;
+      const tail = duration * 1.1 + (h.mult > 1 ? 0.35/h.mult : 1.1);
+      g.gain.setValueAtTime(0, startTime);
+      g.gain.linearRampToValueAtTime(peak, startTime + 0.007);
+      g.gain.exponentialRampToValueAtTime(Math.max(peak*0.001, 0.0001), startTime + tail);
+
+      osc.connect(g);
+      g.connect(gainMain);
+      osc.start(startTime);
+      osc.stop(startTime + tail + 0.3);
+
+      activeOscillators.add(osc);
+      osc.onended = ()=>activeOscillators.delete(osc);
+    });
+  }
+
+  function stopAllAudio(){
+    activeOscillators.forEach(o=>{ try{ o.stop(); }catch(e){} });
+    activeOscillators.clear();
+  }
+
+  let hihatNoiseBuffer = null;
+  function getHiHatBuffer(){
+    if(hihatNoiseBuffer) return hihatNoiseBuffer;
+    const len = Math.floor(audioCtx.sampleRate * 0.60);
+    const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<len;i++) data[i] = Math.random()*2 - 1;
+    hihatNoiseBuffer = buf;
+    return buf;
+  }
+
+  function playHiHat(startTime, accent){
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = getHiHatBuffer();
+
+    const hp = audioCtx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = accent ? 6000 : 8500;
+
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = accent ? 10000 : 12000;
+    bp.Q.value = accent ? 0.4 : 1.2;
+
+    const g = audioCtx.createGain();
+    const peak = accent ? 0.30 : 0.18;
+    const tail = accent ? 0.35 : 0.05;
+
+    g.gain.setValueAtTime(0, startTime);
+    g.gain.linearRampToValueAtTime(peak, startTime + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, startTime + tail);
+
+    noise.connect(hp); hp.connect(bp); bp.connect(g); g.connect(masterGain);
+    noise.start(startTime);
+    noise.stop(startTime + tail + 0.05);
+
+    activeOscillators.add(noise);
+    noise.onended = ()=>activeOscillators.delete(noise);
+
+    // Lähetetään MIDI kanavalla 10 (metronomi-perkussiot)
+    const note = accent ? 76 : 77; // GM Woodblocks
+    sendMidiNote(9, note, startTime, 0.05, accent ? 0.8 : 0.5);
+  }
+
+  /* =========================================================
+     RUMPU-SYNTEESIEN IMPLEMENTOINTI
+     ========================================================= */
+  function playKick(startTime, accent) {
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.connect(gainNode);
+    gainNode.connect(masterGain);
+    
+    const startFreq = accent ? 150 : 110;
+    const endFreq = 40;
+    const duration = 0.16;
+    
+    osc.frequency.setValueAtTime(startFreq, startTime);
+    osc.frequency.exponentialRampToValueAtTime(endFreq, startTime + 0.09);
+    
+    const peakVolume = accent ? 0.95 : 0.48;
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(peakVolume, startTime + 0.004);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+    
+    osc.start(startTime);
+    osc.stop(startTime + duration + 0.05);
+    
+    activeOscillators.add(osc);
+    osc.onended = () => activeOscillators.delete(osc);
+  }
+
+  function playSnare(startTime, accent) {
+    // Kohinaosuus (matto)
+    const noiseNode = audioCtx.createBufferSource();
+    noiseNode.buffer = getHiHatBuffer();
+    
+    const noiseFilter = audioCtx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(1200, startTime);
+    noiseFilter.Q.value = 1.6;
+    
+    const noiseGain = audioCtx.createGain();
+    const noiseDecay = accent ? 0.20 : 0.09;
+    const noisePeak = accent ? 0.42 : 0.16;
+    
+    noiseGain.gain.setValueAtTime(0, startTime);
+    noiseGain.gain.linearRampToValueAtTime(noisePeak, startTime + 0.004);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, startTime + noiseDecay);
+    
+    noiseNode.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(masterGain);
+    
+    noiseNode.start(startTime);
+    noiseNode.stop(startTime + noiseDecay + 0.05);
+    
+    // Runkotaajuus sweepillä
+    const osc = audioCtx.createOscillator();
+    const oscGain = audioCtx.createGain();
+    
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(180, startTime);
+    osc.frequency.exponentialRampToValueAtTime(105, startTime + 0.06);
+    
+    const shellDecay = 0.08;
+    const shellPeak = accent ? 0.32 : 0.12;
+    
+    oscGain.gain.setValueAtTime(0, startTime);
+    oscGain.gain.linearRampToValueAtTime(shellPeak, startTime + 0.004);
+    oscGain.gain.exponentialRampToValueAtTime(0.0001, startTime + shellDecay);
+    
+    osc.connect(oscGain);
+    oscGain.connect(masterGain);
+    
+    osc.start(startTime);
+    osc.stop(startTime + shellDecay + 0.05);
+    
+    activeOscillators.add(noiseNode);
+    activeOscillators.add(osc);
+    
+    noiseNode.onended = () => activeOscillators.delete(noiseNode);
+    osc.onended = () => activeOscillators.delete(osc);
+  }
+
+  function playHiHatDrum(startTime, open, accent) {
+    const noiseNode = audioCtx.createBufferSource();
+    noiseNode.buffer = getHiHatBuffer();
+    
+    const hp = audioCtx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.setValueAtTime(7000, startTime);
+    
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(11000, startTime);
+    bp.Q.value = 1.1;
+    
+    const gainNode = audioCtx.createGain();
+    const peak = open ? (accent ? 0.23 : 0.14) : (accent ? 0.19 : 0.10);
+    const decay = open ? 0.32 : 0.05;
+    
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(peak, startTime + 0.002);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + decay);
+    
+    noiseNode.connect(hp);
+    hp.connect(bp);
+    bp.connect(gainNode);
+    gainNode.connect(masterGain);
+    
+    noiseNode.start(startTime);
+    noiseNode.stop(startTime + decay + 0.05);
+    
+    activeOscillators.add(noiseNode);
+    noiseNode.onended = () => activeOscillators.delete(noiseNode);
+  }
+
+  /* =========================================================
+     MIDI OUT (Reaaliaikainen)
+     ========================================================= */
+  let midiAccess = null;
+  let midiOutput = null;
+  const pendingMidiOffs = [];
+
+  function populateMidiOutputs(){
+    const select = document.getElementById('midiOut');
+    const prev = select.value;
+    select.innerHTML = '';
+    const none = document.createElement('option');
+    none.value = '';
+    none.textContent = 'Ei MIDI-ulostuloa (sisäinen ääni)';
+    select.appendChild(none);
+
+    if(midiAccess){
+      midiAccess.outputs.forEach(out=>{
+        const opt = document.createElement('option');
+        opt.value = out.id;
+        opt.textContent = out.name;
+        select.appendChild(opt);
+      });
+    }
+    const values = Array.from(select.options).map(o=>o.value);
+    select.value = values.includes(prev) ? prev : '';
+    onMidiSelectChange();
+  }
+
+  function onMidiSelectChange(){
+    const select = document.getElementById('midiOut');
+    midiOutput = (midiAccess && select.value) ? midiAccess.outputs.get(select.value) : null;
+  }
+
+  async function initMIDI(){
+    const select = document.getElementById('midiOut');
+    if(!navigator.requestMIDIAccess){
+      select.innerHTML = '<option value="">Web MIDI ei tuettu selaimessa</option>';
+      return;
+    }
+    try{
+      midiAccess = await navigator.requestMIDIAccess({ sysex:false });
+      populateMidiOutputs();
+      midiAccess.onstatechange = populateMidiOutputs;
+    }catch(e){
+      select.innerHTML = '<option value="">MIDI-käyttöoikeus evätty</option>';
+    }
+    select.addEventListener('change', onMidiSelectChange);
+  }
+
+  function sendMidiNote(channel, midiNum, startTime, duration, velocity){
+    if(!midiOutput) return;
+    const vel = Math.max(1, Math.round(velocity*127));
+    const onT = midiPerfOffset + startTime*1000;
+    const offT = midiPerfOffset + (startTime+duration)*1000;
+    
+    const statusOn = 0x90 | (channel & 0x0F);
+    const statusOff = 0x80 | (channel & 0x0F);
+    
+    try{
+      midiOutput.send([statusOn, midiNum, vel], onT);
+      midiOutput.send([statusOff, midiNum, 0], offT);
+      pendingMidiOffs.push({ cmd: statusOff, midiNum, offT });
+    }catch(e){}
+  }
+
+  function panicMidi(){
+    if(!midiOutput) return;
+    try{
+      for(let ch=0; ch<16; ch++) {
+        for(let n=21; n<=108; n++) {
+          midiOutput.send([0x80 | ch, n, 0]);
+        }
+        midiOutput.send([0xB0 | ch, 123, 0]); // all notes off
+      }
+    }catch(e){}
+    pendingMidiOffs.length = 0;
+  }
+
+  /* =========================================================
+     AJASTIN / SEKVENSSERI
+     ========================================================= */
+  let isPlaying = false;
+  let nextHitTime = 0;
+  let schedulerHandle = null;
+  const pendingTimeouts = [];
+
+  let activeProgression = [];
+  let activeBarsCount = 4;
+  let activeStyleValue = 'block';
+  let hitCursor = 0;
+  let pendingRegenerate = false;
+  let pendingMode = 'simple';
+  let activeMode = 'simple';
+
+  // metronomi
+  let metronomeOn = false;
+  let nextClickTime = 0;
+  let clickBeatIndex = 0;
+
+  function currentTimeSig(){
+    const [num, den] = document.getElementById('timeSig').value.split('/').map(Number);
+    return { num, den };
+  }
+  function currentBeatDur(){
+    const tempo = Math.min(240, Math.max(40, parseFloat(document.getElementById('tempo').value) || 120));
+    const { den } = currentTimeSig();
+    return (60/tempo) * (4/den);
+  }
+
+  function generateSimpleProgression(barCount){
+    const active = getActiveChords();
+    const hits = [];
+    for(let i=0;i<barCount;i++){
+      const randomChord = active[Math.floor(Math.random() * active.length)];
+      const allChordsIdx = ALL_CHORDS.indexOf(randomChord);
+      hits.push({ chordIdx: allChordsIdx, startBar:i, durationBars:1 });
+    }
+    return hits;
+  }
+  
+  function generateAdvancedProgression(barCount){
+    const { num } = currentTimeSig();
+    const densitySelect = document.getElementById('advanceDensity');
+    const beatStep = parseFloat(densitySelect.value) || 0.5;
+    const stepInBars = beatStep / num;
+    
+    const maxChordsInput = document.getElementById('maxChords');
+    const maxChordsPerBar = Math.min(8, Math.max(1, parseInt(maxChordsInput.value, 10) || 3));
+    maxChordsInput.value = maxChordsPerBar;
+
+    const stepsInBar = Math.round(1 / stepInBars);
+    const hits = [];
+    const active = getActiveChords();
+    
+    for (let bar = 0; bar < barCount; bar++) {
+      const possibleChords = Math.min(maxChordsPerBar, stepsInBar);
+      const hitsInBar = 1 + Math.floor(Math.random() * possibleChords);
+      const stepDurations = partition(stepsInBar, hitsInBar);
+      
+      let localStep = 0;
+      for (const durationSteps of stepDurations) {
+        const startBar = bar + (localStep * stepInBars);
+        const durationBars = durationSteps * stepInBars;
+        
+        const randomChord = active[Math.floor(Math.random() * active.length)];
+        const allChordsIdx = ALL_CHORDS.indexOf(randomChord);
+
+        hits.push({
+          chordIdx: allChordsIdx,
+          startBar: startBar,
+          durationBars: durationBars
+        });
+        
+        localStep += durationSteps;
+      }
+    }
+    
+    hits.sort((a,b)=>a.startBar-b.startBar);
+    return hits;
+  }
+
+  function pickRandomVariation(){
+    return VARIATIONS[Math.floor(Math.random()*VARIATIONS.length)];
+  }
+  function resolveVariation(styleValue){
+    if(styleValue === 'random') return pickRandomVariation();
+    return VARIATIONS_BY_VALUE[styleValue] || VARIATIONS[0];
+  }
+
+  function doGenerate(mode){
+    const barsInput = document.getElementById('barsCount');
+    const barCount = Math.min(32, Math.max(1, parseInt(barsInput.value, 10) || 4));
+    barsInput.value = barCount;
+    activeStyleValue = document.getElementById('styleSelect').value;
+    activeBarsCount = barCount;
+    activeMode = mode;
+    
+    activeProgression = (mode === 'advanced')
+      ? generateAdvancedProgression(barCount)
+      : generateSimpleProgression(barCount);
+    
+    if (isPlaying) {
+      if (hitCursor >= activeProgression.length) {
+        hitCursor = 0;
+      }
+    } else {
+      hitCursor = 0;
+    }
+    
+    renderProgressionPills(activeProgression, isPlaying ? hitCursor : -1);
+
+    syncMelodySequences();
+    pregenerateMelodyPitches();
+    if (melodyOn) {
+      renderSequencer();
+    }
+
+    syncBassSequences();
+    pregenerateBassPitches();
+    if (bassOn) {
+      renderBassSequencer();
+    }
+
+    syncDrumSequences();
+    if (drumsOn) {
+      renderDrumSequencer();
+    }
+  }
+
+  function scheduleNextHit(){
+    if(activeProgression.length === 0) return;
+
+    const hit = activeProgression[hitCursor];
+    const chordDef = ALL_CHORDS[hit.chordIdx];
+    const variation = resolveVariation(activeStyleValue);
+    const { num } = currentTimeSig();
+    const beatDur = currentBeatDur();
+    const barDur = num * beatDur;
+
+    const hitBeats = Math.max(0.5, hit.durationBars * num);
+
+    const baseMidi = chordDef.midi;
+    let voicedMidi = baseMidi.slice();
+    if (autoVoicing) {
+      voicedMidi = smoothVoiceChord(baseMidi, lastPlayedMidiNotes);
+    }
+    lastPlayedMidiNotes = voicedMidi.slice();
+
+    const events = variation.gen(voicedMidi, hitBeats, beatDur);
+    const sustainScale = 0.8 + Math.random()*0.2;
+    const maxDuration = hit.durationBars * barDur;
+
+    const startTime = nextHitTime;
+    events.forEach(ev=>{
+      const evStart = startTime + ev.startOffset;
+      const duration = Math.min(ev.duration, maxDuration) * sustainScale;
+      ev.notes.forEach(midi=>{
+        playPianoNote(midiToFreq(midi), evStart, duration, ev.velocity);
+        // Chords MIDI out -> kanava 1 (index 0)
+        sendMidiNote(0, midi, evStart, duration, ev.velocity);
+
+        const pitchClass = midi % 12;
+        const isRoot = (pitchClass === chordDef.rootPC);
+        activeNotesToDraw.push({
+          midi: midi,
+          start: evStart,
+          end: evStart + duration,
+          isRoot: isRoot,
+          color: chordDef.color
+        });
+      });
+    });
+
+    const hitIndexAtSchedule = hitCursor;
+    const progressionSnapshot = activeProgression;
+    const uiDelayMs = Math.max(0, (startTime - audioCtx.currentTime) * 1000);
+    const th = setTimeout(()=>{
+      updateBarUI(chordDef, progressionSnapshot, hitIndexAtSchedule, hit, activeBarsCount);
+    }, uiDelayMs);
+    pendingTimeouts.push(th);
+
+    const isLastHit = (hitCursor === activeProgression.length - 1);
+    if(!isLastHit){
+      const next = activeProgression[hitCursor+1];
+      nextHitTime += (next.startBar - hit.startBar) * barDur;
+      hitCursor++;
+    } else {
+      nextHitTime += (activeBarsCount - hit.startBar) * barDur;
+      hitCursor = 0;
+      if(pendingRegenerate){
+        doGenerate(pendingMode);
+        pendingRegenerate = false;
+      }
+      if(activeProgression.length){
+        nextHitTime += activeProgression[0].startBar * barDur;
+      }
+    }
+  }
+
+  function scheduleMetronomeClicks(){
+    if(!metronomeOn) return;
+    const { num } = currentTimeSig();
+    const beatDur = currentBeatDur();
+    while(nextClickTime < audioCtx.currentTime + 0.35){
+      const accent = (clickBeatIndex % num === 0);
+      playHiHat(nextClickTime, accent);
+      nextClickTime += beatDur;
+      clickBeatIndex++;
+    }
+  }
+
+  function schedulerTick(){
+    while(activeProgression.length && nextHitTime < audioCtx.currentTime + 0.35){
+      scheduleNextHit();
+    }
+    scheduleMetronomeClicks();
+
+    // Melodia sekvensseri
+    if (melodyOn && activeProgression.length) {
+      const stepsCount = parseInt(document.getElementById('melodyStepsInput').value, 10) || 8;
+      const { num } = currentTimeSig();
+      const beatDur = currentBeatDur();
+      const barDur = num * beatDur;
+      const stepDur = barDur / stepsCount;
+
+      const rVal = Math.max(1, parseInt(document.getElementById('melodyRepetitionInput').value, 10) || 1);
+
+      while (nextMelodyStepTime < audioCtx.currentTime + 0.35) {
+        scheduleMelodyStep(melodyBarCursor, melodyStepCursor, nextMelodyStepTime, stepDur);
+        
+        nextMelodyStepTime += stepDur;
+        melodyStepCursor++;
+        if (melodyStepCursor >= stepsCount) {
+          melodyStepCursor = 0;
+          melodyBarCursor++;
+          if (melodyBarCursor >= activeBarsCount * rVal) {
+            melodyBarCursor = 0;
+          }
+        }
+      }
+    }
+
+    // Basso sekvensseri
+    if (bassOn && activeProgression.length) {
+      const bassStepsCount = parseInt(document.getElementById('bassStepsInput').value, 10) || 8;
+      const { num } = currentTimeSig();
+      const beatDur = currentBeatDur();
+      const barDur = num * beatDur;
+      const bassStepDur = barDur / bassStepsCount;
+
+      const bassRVal = Math.max(1, parseInt(document.getElementById('bassRepetitionInput').value, 10) || 1);
+
+      while (nextBassStepTime < audioCtx.currentTime + 0.35) {
+        scheduleBassStep(bassBarCursor, bassStepCursor, nextBassStepTime, bassStepDur);
+        
+        nextBassStepTime += bassStepDur;
+        bassStepCursor++;
+        if (bassStepCursor >= bassStepsCount) {
+          bassStepCursor = 0;
+          bassBarCursor++;
+          if (bassBarCursor >= activeBarsCount * bassRVal) {
+            bassBarCursor = 0;
+          }
+        }
+      }
+    }
+
+    // Rumpusekvensseri
+    if (drumsOn && activeProgression.length) {
+      const drumStepsCount = parseInt(document.getElementById('drumsStepsInput').value, 10) || 8;
+      const { num } = currentTimeSig();
+      const beatDur = currentBeatDur();
+      const barDur = num * beatDur;
+      const drumStepDur = barDur / drumStepsCount;
+
+      const drumRVal = Math.max(1, parseInt(document.getElementById('drumsRepetitionInput').value, 10) || 1);
+
+      while (nextDrumStepTime < audioCtx.currentTime + 0.35) {
+        scheduleDrumStep(drumBarCursor, drumStepCursor, nextDrumStepTime, drumStepDur);
+        
+        nextDrumStepTime += drumStepDur;
+        drumStepCursor++;
+        if (drumStepCursor >= drumStepsCount) {
+          drumStepCursor = 0;
+          drumBarCursor++;
+          if (drumBarCursor >= activeBarsCount * drumRVal) {
+            drumBarCursor = 0;
+          }
+        }
+      }
+    }
+  }
+
+  function play(){
+    initAudio();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    if(isPlaying) return;
+    isPlaying = true;
+    lastPlayedMidiNotes = [];
+    if(activeProgression.length === 0) doGenerate('simple');
+    hitCursor = 0;
+    const barDur = currentTimeSig().num * currentBeatDur();
+    const firstOffset = Math.max(0, activeProgression[0].startBar * barDur);
+    nextHitTime = audioCtx.currentTime + 0.12 + firstOffset;
+    nextClickTime = audioCtx.currentTime + 0.12;
+    clickBeatIndex = 0;
+
+    nextMelodyStepTime = audioCtx.currentTime + 0.12 + firstOffset;
+    melodyStepCursor = 0;
+    melodyBarCursor = 0;
+    pregenerateMelodyPitches();
+
+    nextBassStepTime = audioCtx.currentTime + 0.12 + firstOffset;
+    bassStepCursor = 0;
+    bassBarCursor = 0;
+    pregenerateBassPitches();
+
+    nextDrumStepTime = audioCtx.currentTime + 0.12 + firstOffset;
+    drumStepCursor = 0;
+    drumBarCursor = 0;
+
+    schedulerHandle = setInterval(schedulerTick, 60);
+    schedulerTick();
+    document.getElementById('playBtn').disabled = true;
+    document.getElementById('stopBtn').disabled = false;
+  }
+
+  function stop(){
+    isPlaying = false;
+    if(schedulerHandle) clearInterval(schedulerHandle);
+    schedulerHandle = null;
+    pendingTimeouts.forEach(clearTimeout);
+    pendingTimeouts.length = 0;
+    stopAllAudio();
+    panicMidi();
+    activeNotesToDraw = [];
+    lastPlayedMidiNotes = [];
+    hitCursor = 0;
+    clickBeatIndex = 0;
+    melodyStepCursor = 0;
+    melodyBarCursor = 0;
+    bassStepCursor = 0;
+    bassBarCursor = 0;
+    drumStepCursor = 0;
+    drumBarCursor = 0;
+    document.getElementById('playBtn').disabled = false;
+    document.getElementById('stopBtn').disabled = true;
+    resetChordUI();
+
+    const degrees = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+    degrees.forEach(deg => {
+      const btn = document.getElementById(`btn-melody-pitch-${deg}`);
+      if (btn) {
+        btn.style.backgroundColor = '';
+        btn.style.color = '';
+        btn.style.boxShadow = '';
+        btn.style.borderColor = '';
+      }
+    });
+
+    const bassDegrees = [1, 2, 3, 4, 5, 6, 7, 8];
+    bassDegrees.forEach(deg => {
+      const btn = document.getElementById(`btn-bass-pitch-${deg}`);
+      if (btn) {
+        btn.style.backgroundColor = '';
+        btn.style.color = '';
+        btn.style.boxShadow = '';
+        btn.style.borderColor = '';
+      }
+    });
+  }
+
+  /* =========================================================
+     UI: sointunäyttö, sointukuvio, rengas
+     ========================================================= */
+  const chordNameEl = document.getElementById('chordName');
+  const barCounterEl = document.getElementById('barCounter');
+  const progressionPillsEl = document.getElementById('progressionPills');
+
+  function renderProgressionPills(hits, currentIndex){
+    progressionPillsEl.innerHTML = '';
+    let lastBar = null;
+    hits.forEach((hit, i)=>{
+      const barNum = Math.max(0, Math.floor(hit.startBar + 1e-6));
+      if(lastBar !== null && barNum !== lastBar){
+        const divider = document.createElement('span');
+        divider.className = 'bar-divider';
+        progressionPillsEl.appendChild(divider);
+      }
+      lastBar = barNum;
+      const def = ALL_CHORDS[hit.chordIdx];
+      const pill = document.createElement('span');
+      pill.className = 'chord-pill' + (i === currentIndex ? ' current' : '');
+      pill.style.setProperty('--pc', def.color);
+      pill.textContent = def.name;
+      progressionPillsEl.appendChild(pill);
+    });
+  }
+
+  function updateBarUI(chordDef, progression, hitIndex, hit, totalBars){
+    chordNameEl.textContent = chordDef.name;
+    chordNameEl.style.color = chordDef.color;
+    chordNameEl.style.textShadow = '0 0 18px ' + chordDef.color + ', 0 0 46px ' + chordDef.color;
+    
+    const barNumber = Math.max(1, Math.min(totalBars, Math.floor(hit.startBar + 1e-6) + 1));
+    barCounterEl.innerHTML = 'Tahti <b>' + barNumber + '</b> / ' + totalBars;
+    renderProgressionPills(progression, hitIndex);
+    pulseRing(chordDef.color);
+
+    if (melodyOn) {
+      renderSequencer();
+    }
+    if (bassOn) {
+      renderBassSequencer();
+    }
+    if (drumsOn) {
+      renderDrumSequencer();
+    }
+  }
+
+  function resetChordUI(){
+    chordNameEl.textContent = '–';
+    chordNameEl.style.color = 'var(--text-dim)';
+    chordNameEl.style.textShadow = 'none';
+    barCounterEl.textContent = 'Tahti – / –';
+    if(activeProgression.length){
+      renderProgressionPills(activeProgression, -1);
+    } else {
+      progressionPillsEl.innerHTML = '';
+    }
+  }
+
+  /* --- Kromaattinen dynaaminen kehä --- */
+  const ringCanvas = document.getElementById('ring');
+  const ringCtx = ringCanvas.getContext('2d');
+  let ringPulse = 0;
+
+  function resizeRing(){
+    const rect = ringCanvas.parentElement.getBoundingClientRect();
+    ringCanvas.width = rect.width * devicePixelRatio;
+    ringCanvas.height = rect.height * devicePixelRatio;
+    ringCanvas.style.width = rect.width+'px';
+    ringCanvas.style.height = rect.height+'px';
+  }
+
+  function pulseRing(color){ ringPulse = 1; ringCanvas.dataset.color = color; }
+
+  function drawRing(){
+    const w = ringCanvas.width, h = ringCanvas.height;
+    ringCtx.clearRect(0,0,w,h);
+    const cx = w/2, cy = h/2;
+    
+    const maxR = Math.min(w, h) * 0.38;
+    const minR = maxR * 0.30;
+    
+    ringPulse *= 0.92;
+    const chordColor = ringCanvas.dataset.color || '#37f5ff';
+
+    ringCtx.strokeStyle = 'rgba(128, 128, 128, 0.25)';
+    ringCtx.lineWidth = 1 * devicePixelRatio;
+    for(let i = 0; i < 5; i++){
+      const r = minR + (i / 4) * (maxR - minR);
+      ringCtx.beginPath();
+      ringCtx.arc(cx, cy, r, 0, Math.PI * 2);
+      ringCtx.stroke();
+    }
+
+    ringCtx.textAlign = 'center';
+    ringCtx.textBaseline = 'middle';
+    ringCtx.font = (11 * devicePixelRatio) + 'px "JetBrains Mono", monospace';
+
+    for(let i = 0; i < 12; i++){
+      const angle = -Math.PI / 2 + (i * Math.PI * 2 / 12);
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+
+      ringCtx.beginPath();
+      ringCtx.moveTo(cx + cos * minR, cy + sin * minR);
+      ringCtx.lineTo(cx + cos * maxR, cy + sin * maxR);
+      ringCtx.strokeStyle = 'rgba(27, 35, 56, 0.2)';
+      ringCtx.stroke();
+
+      const textR = maxR + 14 * devicePixelRatio;
+      ringCtx.fillStyle = '#5b6789';
+      ringCtx.fillText(NOTE_NAMES[i], cx + cos * textR, cy + sin * textR);
+    }
+
+    const now = audioCtx ? audioCtx.currentTime : 0;
+    activeNotesToDraw = activeNotesToDraw.filter(n => now < n.end + 0.4);
+
+    activeNotesToDraw.forEach(n => {
+      let intensity = 0;
+      if (now >= n.start && now <= n.end) {
+        intensity = 1;
+      } else if (now > n.end && now <= n.end + 0.3) {
+        intensity = 1 - (now - n.end) / 0.3;
+      } else if (now < n.start && now >= n.start - 0.05) {
+        intensity = (now - (n.start - 0.05)) / 0.05;
+      }
+
+      if (intensity <= 0) return;
+
+      const pitchClass = n.midi % 12;
+      const octave = Math.floor(n.midi / 12) - 1;
+      
+      const octIndex = Math.max(0, Math.min(4, octave - 2));
+      const r = minR + (octIndex / 4) * (maxR - minR);
+
+      const angle = -Math.PI / 2 + (pitchClass * Math.PI * 2 / 12);
+      const x = cx + Math.cos(angle) * r;
+      const y = cy + Math.sin(angle) * r;
+
+      ringCtx.beginPath();
+
+      if (n.isRoot) {
+        const size = (8 + intensity * 6) * devicePixelRatio;
+        ringCtx.arc(x, y, size, 0, Math.PI * 2);
+        ringCtx.fillStyle = '#ffffff';
+        ringCtx.shadowColor = n.color;
+        ringCtx.shadowBlur = 24 * devicePixelRatio * intensity;
+        ringCtx.fill();
+
+        ringCtx.beginPath();
+        ringCtx.arc(x, y, size + 4 * devicePixelRatio, 0, Math.PI * 2);
+        ringCtx.strokeStyle = n.color;
+        ringCtx.lineWidth = 2 * devicePixelRatio;
+        ringCtx.globalAlpha = intensity;
+        ringCtx.stroke();
+        ringCtx.globalAlpha = 1;
+      } else {
+        const size = (5 + intensity * 3) * devicePixelRatio;
+        ringCtx.arc(x, y, size, 0, Math.PI * 2);
+        ringCtx.fillStyle = n.color;
+        ringCtx.shadowColor = n.color;
+        ringCtx.shadowBlur = 12 * devicePixelRatio * intensity;
+        ringCtx.fill();
+      }
+
+      ringCtx.shadowBlur = 0;
+    });
+
+    requestAnimationFrame(drawRing);
+  }
+
+  /* =========================================================
+     SOINTUVALITSIN
+     ========================================================= */
+  function toggleChord(chordIndex) {
+    if (selectedChordIndices.includes(chordIndex)) {
+      selectedChordIndices = selectedChordIndices.filter(idx => idx !== chordIndex);
+    } else {
+      selectedChordIndices.push(chordIndex);
+    }
+    
+    if (selectedChordIndices.length === 0) {
+      selectedChordIndices = [0];
+    }
+    
+    updateChordSelectorUI();
+    doGenerate(activeMode);
+  }
+
+  function updateChordSelectorUI() {
+    ALL_CHORDS.forEach((chord, idx) => {
+      const btn = document.getElementById('btn-chord-' + idx);
+      if (btn) {
+        btn.textContent = chord.name;
+        if (selectedChordIndices.includes(idx)) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      }
+    });
+  }
+
+  function updateTransposedUI() {
+    updateChordSelectorUI();
+    renderProgressionPills(activeProgression, isPlaying ? hitCursor : -1);
+    
+    if (isPlaying && activeProgression.length > 0) {
+      const hit = activeProgression[hitCursor];
+      const chordDef = ALL_CHORDS[hit.chordIdx];
+      chordNameEl.textContent = chordDef.name;
+      chordNameEl.style.color = chordDef.color;
+      chordNameEl.style.textShadow = '0 0 18px ' + chordDef.color + ', 0 0 46px ' + chordDef.color;
+    }
+
+    if (melodyOn) {
+      renderSequencer();
+    }
+    if (bassOn) {
+      renderBassSequencer();
+    }
+  }
+
+  function renderChordSelector() {
+    const container = document.getElementById('chordSelector');
+    container.innerHTML = '';
+    ALL_CHORDS.forEach((chord, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chord-select-btn';
+      btn.id = 'btn-chord-' + idx;
+      btn.textContent = chord.name;
+      btn.style.setProperty('--c-theme', 'var(--cyan)');
+      
+      if (selectedChordIndices.includes(idx)) {
+        btn.classList.add('active');
+      }
+      
+      btn.addEventListener('click', () => {
+        toggleChord(idx);
+      });
+      container.appendChild(btn);
+    });
+  }
+
+  /* =========================================================
+     MELODIAGENERAATTORI JA SEKVENSSEI
+     ========================================================= */
+  function getDefaultSequence(length) {
+    const base = [2, 1, 1, 2, 1, 1, 2, 1];
+    const seq = [];
+    for (let i = 0; i < length; i++) {
+      seq.push(base[i % base.length]);
+    }
+    return seq;
+  }
+
+  function generateMotifMelody() {
+    const stepsCount = parseInt(document.getElementById('melodyStepsInput').value, 10) || 8;
+    
+    // 1. Kysymys (A)
+    const rhythmQ = [];
+    const pitchesQ = [];
+    for (let s = 0; s < stepsCount; s++) {
+      const prevR = s > 0 ? rhythmQ[s - 1] : 0;
+      let choices = [0, 2];
+      if (prevR === 2 || prevR === 1) choices.push(1);
+      rhythmQ.push(choices[Math.floor(Math.random() * choices.length)]);
+      pitchesQ.push(selectedMelodyDegrees[Math.floor(Math.random() * selectedMelodyDegrees.length)]);
+    }
+
+    // 2. Vastaus (A') - Sama rytmi, mutta hieman muunnellut sävelet
+    const rhythmA = rhythmQ.slice();
+    const pitchesA = pitchesQ.map(p => {
+      const idx = selectedMelodyDegrees.indexOf(p);
+      if (idx !== -1) {
+        const shift = Math.random() > 0.5 ? 1 : -1;
+        const newIdx = Math.max(0, Math.min(selectedMelodyDegrees.length - 1, idx + shift));
+        return selectedMelodyDegrees[newIdx];
+      }
+      return p;
+    });
+
+    // 3. Ratkaisu (B) - Yksinkertaisempi rytmi ja vahvempi päätös sävelelle
+    const rhythmR = [];
+    const pitchesR = [];
+    for (let s = 0; s < stepsCount; s++) {
+      if (s === stepsCount - 2 || s === stepsCount - 1) {
+        rhythmR.push(s === stepsCount - 2 ? 2 : 1);
+      } else {
+        const prevR = s > 0 ? rhythmR[s - 1] : 0;
+        let choices = [0, 2];
+        if (prevR === 2 || prevR === 1) choices.push(1);
+        const chosen = choices[Math.floor(Math.random() * choices.length)];
+        rhythmR.push(Math.random() > 0.4 ? chosen : 0);
+      }
+      
+      if (s >= stepsCount - 2) {
+        const stable = selectedMelodyDegrees.find(d => d === 8 || d === 15 || d === 12) || selectedMelodyDegrees[0];
+        pitchesR.push(stable);
+      } else {
+        pitchesR.push(selectedMelodyDegrees[Math.floor(Math.random() * selectedMelodyDegrees.length)]);
+      }
+    }
+
+    // Sijoitetaan A - A' - A - B progressioksi
+    melodySequences = [];
+    for (let b = 0; b < activeBarsCount; b++) {
+      const blockIdx = b % 4;
+      if (blockIdx === 0) {
+        melodySequences.push(rhythmQ.slice());
+      } else if (blockIdx === 1) {
+        melodySequences.push(rhythmA.slice());
+      } else if (blockIdx === 2) {
+        melodySequences.push(rhythmQ.slice());
+      } else {
+        melodySequences.push(rhythmR.slice());
+      }
+    }
+
+    const rVal = Math.max(1, parseInt(document.getElementById('melodyRepetitionInput').value, 10) || 1);
+    const totalBarsInMelody = activeBarsCount * rVal;
+    cachedMelodyPitches = [];
+    for (let b = 0; b < totalBarsInMelody; b++) {
+      const blockIdx = b % 4;
+      if (blockIdx === 0) {
+        cachedMelodyPitches.push(pitchesQ.slice());
+      } else if (blockIdx === 1) {
+        cachedMelodyPitches.push(pitchesA.slice());
+      } else if (blockIdx === 2) {
+        cachedMelodyPitches.push(pitchesQ.slice());
+      } else {
+        cachedMelodyPitches.push(pitchesR.slice());
+      }
+    }
+  }
+
+  function syncMelodySequences() {
+    const stepsCount = parseInt(document.getElementById('melodyStepsInput').value, 10) || 8;
+    if (melodyMotifOn) {
+      generateMotifMelody();
+      return;
+    }
+
+    if (melodySequences.length < activeBarsCount) {
+      while (melodySequences.length < activeBarsCount) {
+        melodySequences.push(getDefaultSequence(stepsCount));
+      }
+    } else if (melodySequences.length > activeBarsCount) {
+      melodySequences = melodySequences.slice(0, activeBarsCount);
+    }
+
+    melodySequences.forEach((seq, idx) => {
+      if (seq.length !== stepsCount) {
+        melodySequences[idx] = getDefaultSequence(stepsCount);
+      }
+    });
+  }
+
+  function getKeyScalePitchClasses() {
+    const keyChordIdx = selectedChordIndices[0] !== undefined ? selectedChordIndices[0] : 0;
+    const keyChord = ALL_CHORDS[keyChordIdx];
+    const rootPC = keyChord.rootPC;
+    const isMinor = keyChord.type === 'm' || keyChord.type === 'dim';
+    const intervals = isMinor 
+      ? [0, 2, 3, 5, 7, 8, 10] 
+      : [0, 2, 4, 5, 7, 9, 11];
+    
+    const allowedPCs = new Set();
+    intervals.forEach(interval => {
+      allowedPCs.add((rootPC + interval) % 12);
+    });
+    return allowedPCs;
+  }
+
+  function pregenerateMelodyPitches() {
+    if (melodyMotifOn) {
+      generateMotifMelody();
+      return;
+    }
+
+    const rVal = Math.max(1, parseInt(document.getElementById('melodyRepetitionInput').value, 10) || 1);
+    const totalBarsInMelody = activeBarsCount * rVal;
+    const stepsCount = parseInt(document.getElementById('melodyStepsInput').value, 10) || 8;
+
+    cachedMelodyPitches = [];
+    for (let b = 0; b < totalBarsInMelody; b++) {
+      const barPitches = [];
+      for (let s = 0; s < stepsCount; s++) {
+        const degree = selectedMelodyDegrees[Math.floor(Math.random() * selectedMelodyDegrees.length)];
+        barPitches.push(degree);
+      }
+      cachedMelodyPitches.push(barPitches);
+    }
+  }
+
+  function getMidiForDegree(chord, degree) {
+    const allowedPCs = getKeyScalePitchClasses();
+    let currentMidi = chord.midi[0];
+    
+    let stepsToTake = degree - 8;
+    if (stepsToTake > 0) {
+      while (stepsToTake > 0) {
+        currentMidi++;
+        if (allowedPCs.has(currentMidi % 12)) {
+          stepsToTake--;
+        }
+      }
+    } else if (stepsToTake < 0) {
+      while (stepsToTake < 0) {
+        currentMidi--;
+        if (allowedPCs.has(currentMidi % 12)) {
+          stepsToTake++;
+        }
+      }
+    }
+    return currentMidi;
+  }
+
+  function getChordAtBarTime(barTime) {
+    const loopTime = barTime % activeBarsCount;
+    const hit = activeProgression.find(h => loopTime >= h.startBar && loopTime < h.startBar + h.durationBars);
+    return hit ? ALL_CHORDS[hit.chordIdx] : ALL_CHORDS[activeProgression[0].chordIdx];
+  }
+
+  function handleStepClick(barIdx, stepIdx) {
+    const seq = melodySequences[barIdx];
+    const currentVal = seq[stepIdx];
+    const prevVal = stepIdx > 0 ? seq[stepIdx - 1] : 0;
+
+    let newVal = 0;
+    if (currentVal === 0) {
+      newVal = 2;
+    } else if (currentVal === 2) {
+      if (prevVal === 2 || prevVal === 1) {
+        newVal = 1;
+      } else {
+        newVal = 0;
+      }
+    } else if (currentVal === 1) {
+      newVal = 0;
+    }
+
+    seq[stepIdx] = newVal;
+    renderSequencer();
+  }
+
+  function randomizeSequence(barIdx) {
+    const seq = melodySequences[barIdx];
+    for (let i = 0; i < seq.length; i++) {
+      const prevVal = i > 0 ? seq[i - 1] : 0;
+      let choices = [0, 2];
+      if (prevVal === 2 || prevVal === 1) {
+        choices.push(1);
+      }
+      seq[i] = choices[Math.floor(Math.random() * choices.length)];
+    }
+    renderSequencer();
+  }
+
+  function renderMelodyPitches() {
+    const container = document.getElementById('melodyPitchContainer');
+    container.innerHTML = '';
+    const degrees = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+
+    degrees.forEach(deg => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chord-select-btn';
+      btn.id = `btn-melody-pitch-${deg}`;
+      btn.style.setProperty('--c-theme', 'var(--cyan)');
+      btn.style.padding = '6px 12px';
+      btn.style.fontSize = '12px';
+      btn.textContent = deg.toString();
+      
+      if (selectedMelodyDegrees.includes(deg)) {
+        btn.classList.add('active');
+      }
+
+      btn.addEventListener('click', () => {
+        if (selectedMelodyDegrees.includes(deg)) {
+          selectedMelodyDegrees = selectedMelodyDegrees.filter(d => d !== deg);
+        } else {
+          selectedMelodyDegrees.push(deg);
+        }
+        if (selectedMelodyDegrees.length === 0) {
+          selectedMelodyDegrees = [8];
+        }
+        renderMelodyPitches();
+        pregenerateMelodyPitches();
+      });
+
+      container.appendChild(btn);
+    });
+  }
+
+  function renderSequencer() {
+    const container = document.getElementById('melodySequencerRows');
+    container.innerHTML = '';
+
+    melodySequences.forEach((seq, barIdx) => {
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.gap = '12px';
+      row.style.flexWrap = 'wrap';
+
+      const label = document.createElement('span');
+      label.style.fontFamily = "'JetBrains Mono', monospace";
+      label.style.fontSize = "12px";
+      label.style.color = "var(--text-dim)";
+      label.style.minWidth = "120px";
+
+      const chordHit = activeProgression.find(h => Math.floor(h.startBar + 1e-6) === barIdx);
+      const chordName = chordHit ? ALL_CHORDS[chordHit.chordIdx].name : '–';
+      label.innerHTML = `Tahti ${barIdx + 1} <span style="color: var(--cyan); font-weight: bold;">(${chordName})</span>:`;
+
+      const stepsWrapper = document.createElement('div');
+      stepsWrapper.style.display = 'flex';
+      stepsWrapper.style.gap = '5px';
+      stepsWrapper.style.flexWrap = 'wrap';
+
+      seq.forEach((val, stepIdx) => {
+        const stepCell = document.createElement('div');
+        stepCell.style.width = '26px';
+        stepCell.style.height = '26px';
+        stepCell.style.borderRadius = '4px';
+        stepCell.style.cursor = 'pointer';
+        stepCell.style.display = 'flex';
+        stepCell.style.alignItems = 'center';
+        stepCell.style.justifyContent = 'center';
+        stepCell.style.fontFamily = "'JetBrains Mono', monospace";
+        stepCell.style.fontSize = '11px';
+        stepCell.style.fontWeight = 'bold';
+        stepCell.style.userSelect = 'none';
+        stepCell.style.transition = 'background-color 0.1s, box-shadow 0.1s';
+
+        if (val === 2) {
+          stepCell.style.backgroundColor = '#3eff8b';
+          stepCell.style.color = '#05060a';
+          stepCell.style.boxShadow = '0 0 10px rgba(62, 255, 139, 0.45)';
+        } else if (val === 1) {
+          stepCell.style.backgroundColor = '#ffcf5c';
+          stepCell.style.color = '#05060a';
+          stepCell.style.boxShadow = '0 0 8px rgba(255, 207, 92, 0.35)';
+        } else {
+          stepCell.style.backgroundColor = '#05060a';
+          stepCell.style.border = '1px solid var(--line)';
+          stepCell.style.color = 'var(--text-dim)';
+        }
+
+        stepCell.textContent = val.toString();
+
+        stepCell.addEventListener('click', () => {
+          handleStepClick(barIdx, stepIdx);
+        });
+
+        stepsWrapper.appendChild(stepCell);
+      });
+
+      const randBtn = document.createElement('button');
+      randBtn.type = 'button';
+      randBtn.className = 'btn-small';
+      randBtn.textContent = 'Random';
+      randBtn.style.padding = '4px 8px';
+      randBtn.style.fontSize = '11px';
+      randBtn.addEventListener('click', () => {
+        randomizeSequence(barIdx);
+      });
+
+      row.appendChild(label);
+      row.appendChild(stepsWrapper);
+      row.appendChild(randBtn);
+      container.appendChild(row);
+    });
+  }
+
+  function scheduleMelodyStep(barIdx, stepIdx, startTime, stepDur) {
+    if (!melodyOn) return;
+    
+    const rhythmBarIdx = barIdx % activeBarsCount;
+    const seq = melodySequences[rhythmBarIdx];
+    if (!seq) return;
+    const val = seq[stepIdx];
+
+    if (val === 2) {
+      let durationSteps = 1;
+      for (let i = stepIdx + 1; i < seq.length; i++) {
+        if (seq[i] === 1) {
+          durationSteps++;
+        } else {
+          break;
+        }
+      }
+      const duration = durationSteps * stepDur * 0.95;
+
+      const stepBarTime = barIdx + (stepIdx / seq.length);
+      const currentChord = getChordAtBarTime(stepBarTime);
+
+      let degree = 8;
+      if (cachedMelodyPitches[barIdx] && cachedMelodyPitches[barIdx][stepIdx] !== undefined) {
+        degree = cachedMelodyPitches[barIdx][stepIdx];
+      } else {
+        degree = selectedMelodyDegrees[Math.floor(Math.random() * selectedMelodyDegrees.length)] || 8;
+      }
+
+      const midi = getMidiForDegree(currentChord, degree);
+      const freq = midiToFreq(midi);
+      const velocity = 0.72;
+
+      playPianoNote(freq, startTime, duration, velocity);
+      // Melody MIDI out -> kanava 2 (index 1)
+      sendMidiNote(1, midi, startTime, duration, velocity);
+
+      const onsetDelay = Math.max(0, (startTime - audioCtx.currentTime) * 1000);
+      const durationMs = duration * 1000;
+
+      const onTimeout = setTimeout(() => {
+        const btn = document.getElementById(`btn-melody-pitch-${degree}`);
+        if (btn) {
+          btn.style.backgroundColor = '#3eff8b';
+          btn.style.color = '#05060a';
+          btn.style.boxShadow = '0 0 15px #3eff8b';
+          btn.style.borderColor = '#3eff8b';
+        }
+      }, onsetDelay);
+      pendingTimeouts.push(onTimeout);
+
+      const offTimeout = setTimeout(() => {
+        const btn = document.getElementById(`btn-melody-pitch-${degree}`);
+        if (btn) {
+          btn.style.backgroundColor = '';
+          btn.style.color = '';
+          btn.style.boxShadow = '';
+          btn.style.borderColor = '';
+        }
+      }, onsetDelay + durationMs);
+      pendingTimeouts.push(offTimeout);
+
+      activeNotesToDraw.push({
+        midi: midi,
+        start: startTime,
+        end: startTime + duration,
+        isRoot: false,
+        color: currentChord.color
+      });
+    }
+  }
+
+  /* =========================================================
+     BASSO-OSIO
+     ========================================================= */
+  function syncBassSequences() {
+    const stepsCount = parseInt(document.getElementById('bassStepsInput').value, 10) || 8;
+    if (bassSequences.length < activeBarsCount) {
+      while (bassSequences.length < activeBarsCount) {
+        bassSequences.push(getDefaultSequence(stepsCount));
+      }
+    } else if (bassSequences.length > activeBarsCount) {
+      bassSequences = bassSequences.slice(0, activeBarsCount);
+    }
+
+    bassSequences.forEach((seq, idx) => {
+      if (seq.length !== stepsCount) {
+        bassSequences[idx] = getDefaultSequence(stepsCount);
+      }
+    });
+
+    if (bassPatternLockOn && bassSequences.length > 0) {
+      const lockPattern = bassSequences[0];
+      for (let i = 1; i < bassSequences.length; i++) {
+        bassSequences[i] = lockPattern.slice();
+      }
+    }
+  }
+
+  function pregenerateBassPitches() {
+    const rVal = Math.max(1, parseInt(document.getElementById('bassRepetitionInput').value, 10) || 1);
+    const totalBarsInBass = activeBarsCount * rVal;
+    const stepsCount = parseInt(document.getElementById('bassStepsInput').value, 10) || 8;
+
+    cachedBassPitches = [];
+    const firstBarPitches = [];
+    for (let s = 0; s < stepsCount; s++) {
+      firstBarPitches.push(selectedBassDegrees[Math.floor(Math.random() * selectedBassDegrees.length)]);
+    }
+
+    for (let b = 0; b < totalBarsInBass; b++) {
+      if (bassPatternLockOn && b > 0) {
+        cachedBassPitches.push(firstBarPitches.slice());
+      } else {
+        const barPitches = [];
+        for (let s = 0; s < stepsCount; s++) {
+          barPitches.push(selectedBassDegrees[Math.floor(Math.random() * selectedBassDegrees.length)]);
+        }
+        cachedBassPitches.push(barPitches);
+      }
+    }
+  }
+
+  function handleBassStepClick(barIdx, stepIdx) {
+    const targetBarIdx = bassPatternLockOn ? 0 : barIdx;
+    const seq = bassSequences[targetBarIdx];
+    const currentVal = seq[stepIdx];
+    const prevVal = stepIdx > 0 ? seq[stepIdx - 1] : 0;
+
+    let newVal = 0;
+    if (currentVal === 0) {
+      newVal = 2;
+    } else if (currentVal === 2) {
+      if (prevVal === 2 || prevVal === 1) {
+        newVal = 1;
+      } else {
+        newVal = 0;
+      }
+    } else if (currentVal === 1) {
+      newVal = 0;
+    }
+
+    seq[stepIdx] = newVal;
+
+    if (bassPatternLockOn) {
+      for (let i = 1; i < bassSequences.length; i++) {
+        bassSequences[i] = seq.slice();
+      }
+    }
+
+    renderBassSequencer();
+  }
+
+  function randomizeBassSequence(barIdx) {
+    const targetBarIdx = bassPatternLockOn ? 0 : barIdx;
+    const seq = bassSequences[targetBarIdx];
+    for (let i = 0; i < seq.length; i++) {
+      const prevVal = i > 0 ? seq[i - 1] : 0;
+      let choices = [0, 2];
+      if (prevVal === 2 || prevVal === 1) {
+        choices.push(1);
+      }
+      seq[i] = choices[Math.floor(Math.random() * choices.length)];
+    }
+
+    if (bassPatternLockOn) {
+      for (let i = 1; i < bassSequences.length; i++) {
+        bassSequences[i] = seq.slice();
+      }
+    }
+
+    renderBassSequencer();
+  }
+
+  function renderBassPitches() {
+    const container = document.getElementById('bassPitchContainer');
+    container.innerHTML = '';
+    const degrees = [1, 2, 3, 4, 5, 6, 7, 8];
+
+    degrees.forEach(deg => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chord-select-btn';
+      btn.id = `btn-bass-pitch-${deg}`;
+      btn.style.setProperty('--c-theme', 'var(--magenta)');
+      btn.style.padding = '6px 12px';
+      btn.style.fontSize = '12px';
+      btn.textContent = deg.toString();
+      
+      if (selectedBassDegrees.includes(deg)) {
+        btn.classList.add('active');
+      }
+
+      btn.addEventListener('click', () => {
+        if (selectedBassDegrees.includes(deg)) {
+          selectedBassDegrees = selectedBassDegrees.filter(d => d !== deg);
+        } else {
+          selectedBassDegrees.push(deg);
+        }
+        if (selectedBassDegrees.length === 0) {
+          selectedBassDegrees = [1];
+        }
+        renderBassPitches();
+        pregenerateBassPitches();
+      });
+
+      container.appendChild(btn);
+    });
+  }
+
+  function renderBassSequencer() {
+    const container = document.getElementById('bassSequencerRows');
+    container.innerHTML = '';
+
+    bassSequences.forEach((seq, barIdx) => {
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.gap = '12px';
+      row.style.flexWrap = 'wrap';
+
+      const label = document.createElement('span');
+      label.style.fontFamily = "'JetBrains Mono', monospace";
+      label.style.fontSize = "12px";
+      label.style.color = "var(--text-dim)";
+      label.style.minWidth = "120px";
+
+      const chordHit = activeProgression.find(h => Math.floor(h.startBar + 1e-6) === barIdx);
+      const chordName = chordHit ? ALL_CHORDS[chordHit.chordIdx].name : '–';
+      label.innerHTML = `Tahti ${barIdx + 1} <span style="color: var(--magenta); font-weight: bold;">(${chordName})</span>:`;
+
+      const stepsWrapper = document.createElement('div');
+      stepsWrapper.style.display = 'flex';
+      stepsWrapper.style.gap = '5px';
+      stepsWrapper.style.flexWrap = 'wrap';
+
+      seq.forEach((val, stepIdx) => {
+        const stepCell = document.createElement('div');
+        stepCell.style.width = '26px';
+        stepCell.style.height = '26px';
+        stepCell.style.borderRadius = '4px';
+        stepCell.style.cursor = 'pointer';
+        stepCell.style.display = 'flex';
+        stepCell.style.alignItems = 'center';
+        stepCell.style.justifyContent = 'center';
+        stepCell.style.fontFamily = "'JetBrains Mono', monospace";
+        stepCell.style.fontSize = '11px';
+        stepCell.style.fontWeight = 'bold';
+        stepCell.style.userSelect = 'none';
+        stepCell.style.transition = 'background-color 0.1s, box-shadow 0.1s';
+
+        if (val === 2) {
+          stepCell.style.backgroundColor = '#ff3ec9';
+          stepCell.style.color = '#05060a';
+          stepCell.style.boxShadow = '0 0 10px rgba(255, 62, 201, 0.45)';
+        } else if (val === 1) {
+          stepCell.style.backgroundColor = '#8b5cf6';
+          stepCell.style.color = '#fff';
+          stepCell.style.boxShadow = '0 0 8px rgba(139, 92, 246, 0.35)';
+        } else {
+          stepCell.style.backgroundColor = '#05060a';
+          stepCell.style.border = '1px solid var(--line)';
+          stepCell.style.color = 'var(--text-dim)';
+        }
+
+        stepCell.textContent = val.toString();
+
+        stepCell.addEventListener('click', () => {
+          handleBassStepClick(barIdx, stepIdx);
+        });
+
+        stepsWrapper.appendChild(stepCell);
+      });
+
+      const randBtn = document.createElement('button');
+      randBtn.type = 'button';
+      randBtn.className = 'btn-small';
+      randBtn.textContent = 'Random';
+      randBtn.style.padding = '4px 8px';
+      randBtn.style.fontSize = '11px';
+      randBtn.addEventListener('click', () => {
+        randomizeBassSequence(barIdx);
+      });
+
+      row.appendChild(label);
+      row.appendChild(stepsWrapper);
+      row.appendChild(randBtn);
+      container.appendChild(row);
+    });
+  }
+
+  function getMidiForBassDegree(chord, degree) {
+    const allowedPCs = getKeyScalePitchClasses();
+    let currentMidi = chord.midi[0] - 24; // 2 oktaavia soinnun perusäänen alapuolelta
+    
+    let stepsToTake = degree - 1;
+    if (stepsToTake > 0) {
+      while (stepsToTake > 0) {
+        currentMidi++;
+        if (allowedPCs.has(currentMidi % 12)) {
+          stepsToTake--;
+        }
+      }
+    } else if (stepsToTake < 0) {
+      while (stepsToTake < 0) {
+        currentMidi--;
+        if (allowedPCs.has(currentMidi % 12)) {
+          stepsToTake++;
+        }
+      }
+    }
+    return currentMidi;
+  }
+
+  function scheduleBassStep(barIdx, stepIdx, startTime, stepDur) {
+    if (!bassOn) return;
+    
+    const rhythmBarIdx = barIdx % activeBarsCount;
+    const seq = bassSequences[rhythmBarIdx];
+    if (!seq) return;
+    const val = seq[stepIdx];
+
+    if (val === 2) {
+      let durationSteps = 1;
+      for (let i = stepIdx + 1; i < seq.length; i++) {
+        if (seq[i] === 1) {
+          durationSteps++;
+        } else {
+          break;
+        }
+      }
+      const duration = durationSteps * stepDur * 0.95;
+
+      const stepBarTime = barIdx + (stepIdx / seq.length);
+      const currentChord = getChordAtBarTime(stepBarTime);
+
+      let degree = 1;
+      if (cachedBassPitches[barIdx] && cachedBassPitches[barIdx][stepIdx] !== undefined) {
+        degree = cachedBassPitches[barIdx][stepIdx];
+      } else {
+        degree = selectedBassDegrees[Math.floor(Math.random() * selectedBassDegrees.length)] || 1;
+      }
+
+      const midi = getMidiForBassDegree(currentChord, degree);
+      const freq = midiToFreq(midi);
+      const velocity = 0.85;
+
+      playPianoNote(freq, startTime, duration, velocity);
+      // Bass MIDI out -> kanava 3 (index 2)
+      sendMidiNote(2, midi, startTime, duration, velocity);
+
+      const onsetDelay = Math.max(0, (startTime - audioCtx.currentTime) * 1000);
+      const durationMs = duration * 1000;
+
+      const onTimeout = setTimeout(() => {
+        const btn = document.getElementById(`btn-bass-pitch-${degree}`);
+        if (btn) {
+          btn.style.backgroundColor = '#ff3ec9';
+          btn.style.color = '#05060a';
+          btn.style.boxShadow = '0 0 15px #ff3ec9';
+          btn.style.borderColor = '#ff3ec9';
+        }
+      }, onsetDelay);
+      pendingTimeouts.push(onTimeout);
+
+      const offTimeout = setTimeout(() => {
+        const btn = document.getElementById(`btn-bass-pitch-${degree}`);
+        if (btn) {
+          btn.style.backgroundColor = '';
+          btn.style.color = '';
+          btn.style.boxShadow = '';
+          btn.style.borderColor = '';
+        }
+      }, onsetDelay + durationMs);
+      pendingTimeouts.push(offTimeout);
+
+      activeNotesToDraw.push({
+        midi: midi,
+        start: startTime,
+        end: startTime + duration,
+        isRoot: true,
+        color: '#ff3ec9'
+      });
+    }
+  }
+
+  /* =========================================================
+     RUMPUJEN HALLINTA JA SEKVENSSEI
+     ========================================================= */
+  function syncDrumSequences() {
+    const stepsCount = parseInt(document.getElementById('drumsStepsInput').value, 10) || 8;
+    const tracks = ['kick', 'snare', 'hihat'];
+
+    tracks.forEach(tr => {
+      if (!drumSequences[tr]) drumSequences[tr] = [];
+
+      if (drumSequences[tr].length < activeBarsCount) {
+        while (drumSequences[tr].length < activeBarsCount) {
+          const row = Array(stepsCount).fill(0);
+          // Alustetaan hi-hatit suljetuksi (1) oletuksena ja kick tahdin alkuun kivaa oletuskomppia varten
+          if (tr === 'hihat') {
+            for (let i = 0; i < stepsCount; i++) row[i] = 1;
+          } else if (tr === 'kick') {
+            for (let i = 0; i < stepsCount; i += 4) row[i] = 2;
+          } else if (tr === 'snare') {
+            if (stepsCount >= 4) {
+              for (let i = 2; i < stepsCount; i += 4) row[i] = 2;
+            }
+          }
+          drumSequences[tr].push(row);
+        }
+      } else if (drumSequences[tr].length > activeBarsCount) {
+        drumSequences[tr] = drumSequences[tr].slice(0, activeBarsCount);
+      }
+
+      drumSequences[tr].forEach((seq, idx) => {
+        if (seq.length !== stepsCount) {
+          const newSeq = Array(stepsCount).fill(0);
+          for (let i = 0; i < stepsCount; i++) {
+            if (i < seq.length) newSeq[i] = seq[i];
+          }
+          drumSequences[tr][idx] = newSeq;
+        }
+      });
+    });
+
+    if (drumsPatternLockOn && drumSequences.kick.length > 0) {
+      tracks.forEach(tr => {
+        const lockPattern = drumSequences[tr][0];
+        for (let i = 1; i < drumSequences[tr].length; i++) {
+          drumSequences[tr][i] = lockPattern.slice();
+        }
+      });
+    }
+  }
+
+  function handleDrumStepClick(type, barIdx, stepIdx) {
+    const targetBarIdx = drumsPatternLockOn ? 0 : barIdx;
+    const seq = drumSequences[type][targetBarIdx];
+    const currentVal = seq[stepIdx];
+
+    // Sykli: 0 (tauko) -> 2 (isku/avoin) -> 1 (ghost/suljettu) -> 0
+    let newVal = 0;
+    if (currentVal === 0) {
+      newVal = 2;
+    } else if (currentVal === 2) {
+      newVal = 1;
+    } else if (currentVal === 1) {
+      newVal = 0;
+    }
+
+    seq[stepIdx] = newVal;
+
+    if (drumsPatternLockOn) {
+      for (let i = 1; i < drumSequences[type].length; i++) {
+        drumSequences[type][i] = seq.slice();
+      }
+    }
+
+    renderDrumSequencer();
+  }
+
+  function randomizeDrumSequence(type, barIdx) {
+    const targetBarIdx = drumsPatternLockOn ? 0 : barIdx;
+    const seq = drumSequences[type][targetBarIdx];
+    for (let i = 0; i < seq.length; i++) {
+      const rand = Math.random();
+      if (type === 'hihat') {
+        seq[i] = rand < 0.55 ? 1 : (rand < 0.80 ? 2 : 0);
+      } else {
+        seq[i] = rand < 0.68 ? 0 : (rand < 0.90 ? 2 : 1);
+      }
+    }
+
+    if (drumsPatternLockOn) {
+      for (let i = 1; i < drumSequences[type].length; i++) {
+        drumSequences[type][i] = seq.slice();
+      }
+    }
+
+    renderDrumSequencer();
+  }
+
+  function renderDrumSequencer() {
+    const container = document.getElementById('drumsSequencerRows');
+    container.innerHTML = '';
+
+    for (let b = 0; b < activeBarsCount; b++) {
+      const barBox = document.createElement('div');
+      barBox.style.borderBottom = '1px solid var(--line)';
+      barBox.style.paddingBottom = '14px';
+      barBox.style.marginBottom = '14px';
+      if (b === activeBarsCount - 1) {
+        barBox.style.borderBottom = 'none';
+        barBox.style.paddingBottom = '0';
+        barBox.style.marginBottom = '0';
+      }
+
+      const headerDiv = document.createElement('div');
+      headerDiv.style.display = 'flex';
+      headerDiv.style.justifyContent = 'space-between';
+      headerDiv.style.alignItems = 'center';
+      headerDiv.style.marginBottom = '10px';
+
+      const barLabel = document.createElement('span');
+      barLabel.style.fontFamily = "'JetBrains Mono', monospace";
+      barLabel.style.fontSize = "13px";
+      barLabel.style.color = "var(--text-dim)";
+      const chordHit = activeProgression.find(h => Math.floor(h.startBar + 1e-6) === b);
+      const chordName = chordHit ? ALL_CHORDS[chordHit.chordIdx].name : '–';
+      barLabel.innerHTML = `Tahti ${b + 1} <span style="color: var(--amber); font-weight: bold;">(${chordName})</span>:`;
+
+      const randBtn = document.createElement('button');
+      randBtn.type = 'button';
+      randBtn.className = 'btn-small';
+      randBtn.textContent = 'Arvo tahti';
+      randBtn.style.padding = '3px 8px';
+      randBtn.style.fontSize = '11px';
+      randBtn.addEventListener('click', () => {
+        randomizeDrumSequence('kick', b);
+        randomizeDrumSequence('snare', b);
+        randomizeDrumSequence('hihat', b);
+      });
+
+      headerDiv.appendChild(barLabel);
+      headerDiv.appendChild(randBtn);
+      barBox.appendChild(headerDiv);
+
+      const subtracks = [
+        { key: 'hihat', label: 'Hi-hat', c2: 'var(--cyan)', c1: '#008ba3', d2: 'Avoin', d1: 'Suljettu' },
+        { key: 'snare', label: 'Snare', c2: 'var(--amber)', c1: '#946c00', d2: 'Isku', d1: 'Ghost' },
+        { key: 'kick', label: 'Kick', c2: 'var(--magenta)', c1: '#b80080', d2: 'Isku', d1: 'Ghost' }
+      ];
+
+      subtracks.forEach(track => {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.gap = '12px';
+        row.style.marginBottom = '6px';
+        row.style.flexWrap = 'wrap';
+
+        const instLabel = document.createElement('span');
+        instLabel.style.fontFamily = "'JetBrains Mono', monospace";
+        instLabel.style.fontSize = "11px";
+        instLabel.style.color = "var(--text-dim)";
+        instLabel.style.minWidth = "65px";
+        instLabel.textContent = track.label;
+
+        const stepsWrapper = document.createElement('div');
+        stepsWrapper.style.display = 'flex';
+        stepsWrapper.style.gap = '5px';
+        stepsWrapper.style.flexWrap = 'wrap';
+
+        const seq = drumSequences[track.key][b];
+
+        seq.forEach((val, stepIdx) => {
+          const stepCell = document.createElement('div');
+          stepCell.style.width = '26px';
+          stepCell.style.height = '26px';
+          stepCell.style.borderRadius = '4px';
+          stepCell.style.cursor = 'pointer';
+          stepCell.style.display = 'flex';
+          stepCell.style.alignItems = 'center';
+          stepCell.style.justifyContent = 'center';
+          stepCell.style.fontFamily = "'JetBrains Mono', monospace";
+          stepCell.style.fontSize = '11px';
+          stepCell.style.fontWeight = 'bold';
+          stepCell.style.userSelect = 'none';
+          stepCell.style.transition = 'background-color 0.1s, box-shadow 0.1s';
+
+          if (val === 2) {
+            stepCell.style.backgroundColor = track.c2;
+            stepCell.style.color = '#05060a';
+            stepCell.style.boxShadow = `0 0 10px ${track.c2}70`;
+          } else if (val === 1) {
+            stepCell.style.backgroundColor = track.c1;
+            stepCell.style.color = '#fff';
+            stepCell.style.boxShadow = `0 0 6px ${track.c1}50`;
+          } else {
+            stepCell.style.backgroundColor = '#05060a';
+            stepCell.style.border = '1px solid var(--line)';
+            stepCell.style.color = 'var(--text-dim)';
+          }
+
+          stepCell.textContent = val.toString();
+          stepCell.title = val === 2 ? track.d2 : (val === 1 ? track.d1 : 'Tauko');
+
+          stepCell.addEventListener('click', () => {
+            handleDrumStepClick(track.key, b, stepIdx);
+          });
+
+          stepsWrapper.appendChild(stepCell);
+        });
+
+        row.appendChild(instLabel);
+        row.appendChild(stepsWrapper);
+        barBox.appendChild(row);
+      });
+
+      container.appendChild(barBox);
+    }
+  }
+
+  function scheduleDrumStep(barIdx, stepIdx, startTime, stepDur) {
+    if (!drumsOn) return;
+
+    const rhythmBarIdx = barIdx % activeBarsCount;
+
+    const kickSeq = drumSequences.kick[rhythmBarIdx];
+    const snareSeq = drumSequences.snare[rhythmBarIdx];
+    const hihatSeq = drumSequences.hihat[rhythmBarIdx];
+
+    if (kickSeq && kickSeq[stepIdx] !== undefined) {
+      const val = kickSeq[stepIdx];
+      if (val > 0) {
+        const accent = (val === 2);
+        playKick(startTime, accent);
+        sendMidiNote(9, 36, startTime, 0.12, accent ? 1.0 : 0.45); // General MIDI Note 36 (Bass Drum 1) on channel 10 (index 9)
+      }
+    }
+
+    if (snareSeq && snareSeq[stepIdx] !== undefined) {
+      const val = snareSeq[stepIdx];
+      if (val > 0) {
+        const accent = (val === 2);
+        playSnare(startTime, accent);
+        sendMidiNote(9, 38, startTime, 0.15, accent ? 1.0 : 0.40); // General MIDI Note 38 (Acoustic Snare) on channel 10 (index 9)
+      }
+    }
+
+    if (hihatSeq && hihatSeq[stepIdx] !== undefined) {
+      const val = hihatSeq[stepIdx];
+      if (val > 0) {
+        const open = (val === 2);
+        playHiHatDrum(startTime, open, true);
+        sendMidiNote(9, open ? 46 : 42, startTime, open ? 0.3 : 0.05, 0.65); // Open (46) or Closed Hi-Hat (42)
+      }
+    }
+  }
+
+  /* =========================================================
+     TAP TEMPO
+     ========================================================= */
+  let tapTimes = [];
+  function handleTap(){
+    const now = performance.now();
+    if(tapTimes.length && now - tapTimes[tapTimes.length-1] > 2000) tapTimes = [];
+    tapTimes.push(now);
+    if(tapTimes.length > 6) tapTimes.shift();
+
+    if(tapTimes.length >= 2){
+      const intervals = [];
+      for(let i=1;i<tapTimes.length;i++) intervals.push(tapTimes[i]-tapTimes[i-1]);
+      const avg = intervals.reduce((a,b)=>a+b,0)/intervals.length;
+      const bpm = Math.round(60000/avg);
+      document.getElementById('tempo').value = Math.min(240, Math.max(40, bpm));
+    }
+    const btn = document.getElementById('tapBtn');
+    btn.classList.add('pulse');
+    setTimeout(()=>btn.classList.remove('pulse'), 140);
+  }
+
+  /* =========================================================
+     MIDI FILE EXPORT (Ei ulkoisia kirjastoja)
+     ========================================================= */
+  function writeVarInt(value) {
+    let buffer = [];
+    buffer.push(value & 0x7F);
+    while (value > 127) {
+      value = value >> 7;
+      buffer.push((value & 0x7F) | 0x80);
+    }
+    return buffer.reverse();
+  }
+
+  function serializeTrackZero(bpm, num, den) {
+    let bytes = [];
+    
+    // Time Signature
+    bytes.push(0x00, 0xFF, 0x58, 0x04);
+    bytes.push(num & 0xFF);
+    const denPow = Math.round(Math.log2(den));
+    bytes.push(denPow & 0xFF);
+    bytes.push(24, 8); // 24 kelloiskua, 8 demisemiquaveria
+    
+    // Tempo
+    bytes.push(0x00, 0xFF, 0x51, 0x03);
+    const microsecondsPerBeat = Math.round(60000000 / bpm);
+    bytes.push((microsecondsPerBeat >> 16) & 0xFF);
+    bytes.push((microsecondsPerBeat >> 8) & 0xFF);
+    bytes.push(microsecondsPerBeat & 0xFF);
+    
+    // Track End
+    bytes.push(0x00, 0xFF, 0x2F, 0x00);
+    return bytes;
+  }
+
+  function serializeTrack(events, channel) {
+    events.sort((a, b) => a.tick - b.tick);
+    
+    let bytes = [];
+    let lastTick = 0;
+    
+    events.forEach(ev => {
+      let delta = ev.tick - lastTick;
+      if (delta < 0) delta = 0;
+      
+      bytes.push(...writeVarInt(delta));
+      
+      const status = (ev.type === 'noteOn' ? 0x90 : 0x80) | (channel & 0x0F);
+      bytes.push(status);
+      bytes.push(ev.note & 0x7F);
+      bytes.push(ev.velocity & 0x7F);
+      
+      lastTick = ev.tick;
+    });
+    
+    bytes.push(0x00, 0xFF, 0x2F, 0x00);
+    return bytes;
+  }
+
+  function exportMidiFile() {
+    if (activeProgression.length === 0) return;
+
+    const { num, den } = currentTimeSig();
+    const ticksPerBeat = Math.round(480 * (4 / den));
+    const ticksPerBar = num * ticksPerBeat;
+
+    const chordTrackEvents = [];
+    const melodyTrackEvents = [];
+    const bassTrackEvents = [];
+    const drumTrackEvents = [];
+    const metronomeTrackEvents = [];
+
+    // 1. Soinnut
+    let lastExportedMidiNotes = [];
+    activeProgression.forEach(hit => {
+      const chordDef = ALL_CHORDS[hit.chordIdx];
+      const variation = resolveVariation(activeStyleValue);
+      const hitBeats = Math.max(0.5, hit.durationBars * num);
+
+      let voicedMidi = chordDef.midi.slice();
+      if (autoVoicing) {
+        voicedMidi = smoothVoiceChord(chordDef.midi, lastExportedMidiNotes);
+        lastExportedMidiNotes = voicedMidi.slice();
+      }
+
+      // Generoidaan variaatiot beats-yksiköissä (dummy beatDur 1.0)
+      const events = variation.gen(voicedMidi, hitBeats, 1.0);
+      const startBarTicks = Math.round(hit.startBar * ticksPerBar);
+      const maxDurationTicks = Math.round(hit.durationBars * ticksPerBar);
+      const sustainScale = 0.9;
+
+      events.forEach(ev => {
+        const evStartTicks = startBarTicks + Math.round(ev.startOffset * ticksPerBeat);
+        const durationTicks = Math.min(Math.round(ev.duration * ticksPerBeat), maxDurationTicks) * sustainScale;
+        const evEndTicks = evStartTicks + durationTicks;
+
+        ev.notes.forEach(note => {
+          chordTrackEvents.push({ type: 'noteOn', tick: Math.round(evStartTicks), note: note, velocity: Math.round(ev.velocity * 127) });
+          chordTrackEvents.push({ type: 'noteOff', tick: Math.round(evEndTicks), note: note, velocity: 0 });
+        });
+      });
+    });
+
+    // 2. Melodia
+    const melodyStepsCount = parseInt(document.getElementById('melodyStepsInput').value, 10) || 8;
+    const melodyRVal = Math.max(1, parseInt(document.getElementById('melodyRepetitionInput').value, 10) || 1);
+    const totalMelodyBars = activeBarsCount * melodyRVal;
+    const melodyTicksPerStep = ticksPerBar / melodyStepsCount;
+
+    if (melodyOn) {
+      for (let b = 0; b < totalMelodyBars; b++) {
+        const rhythmBarIdx = b % activeBarsCount;
+        const seq = melodySequences[rhythmBarIdx];
+        if (!seq) continue;
+
+        for (let s = 0; s < melodyStepsCount; s++) {
+          const val = seq[s];
+          if (val === 2) {
+            let durationSteps = 1;
+            for (let i = s + 1; i < seq.length; i++) {
+              if (seq[i] === 1) {
+                durationSteps++;
+              } else {
+                break;
+              }
+            }
+            const durationTicks = durationSteps * melodyTicksPerStep * 0.95;
+
+            const stepBarTime = b + (s / seq.length);
+            const currentChord = getChordAtBarTime(stepBarTime);
+
+            let degree = 8;
+            if (cachedMelodyPitches[b] && cachedMelodyPitches[b][s] !== undefined) {
+              degree = cachedMelodyPitches[b][s];
+            }
+
+            const midi = getMidiForDegree(currentChord, degree);
+            const startTicks = b * ticksPerBar + s * melodyTicksPerStep;
+            const endTicks = startTicks + durationTicks;
+
+            melodyTrackEvents.push({ type: 'noteOn', tick: Math.round(startTicks), note: midi, velocity: Math.round(0.72 * 127) });
+            melodyTrackEvents.push({ type: 'noteOff', tick: Math.round(endTicks), note: midi, velocity: 0 });
+          }
+        }
+      }
+    }
+
+    // 3. Basso
+    const bassStepsCount = parseInt(document.getElementById('bassStepsInput').value, 10) || 8;
+    const bassRVal = Math.max(1, parseInt(document.getElementById('bassRepetitionInput').value, 10) || 1);
+    const totalBassBars = activeBarsCount * bassRVal;
+    const bassTicksPerStep = ticksPerBar / bassStepsCount;
+
+    if (bassOn) {
+      for (let b = 0; b < totalBassBars; b++) {
+        const rhythmBarIdx = b % activeBarsCount;
+        const seq = bassSequences[rhythmBarIdx];
+        if (!seq) continue;
+
+        for (let s = 0; s < bassStepsCount; s++) {
+          const val = seq[s];
+          if (val === 2) {
+            let durationSteps = 1;
+            for (let i = s + 1; i < seq.length; i++) {
+              if (seq[i] === 1) {
+                durationSteps++;
+              } else {
+                break;
+              }
+            }
+            const durationTicks = durationSteps * bassTicksPerStep * 0.95;
+
+            const stepBarTime = b + (s / seq.length);
+            const currentChord = getChordAtBarTime(stepBarTime);
+
+            let degree = 1;
+            if (cachedBassPitches[b] && cachedBassPitches[b][s] !== undefined) {
+              degree = cachedBassPitches[b][s];
+            }
+
+            const midi = getMidiForBassDegree(currentChord, degree);
+            const startTicks = b * ticksPerBar + s * bassTicksPerStep;
+            const endTicks = startTicks + durationTicks;
+
+            bassTrackEvents.push({ type: 'noteOn', tick: Math.round(startTicks), note: midi, velocity: Math.round(0.85 * 127) });
+            bassTrackEvents.push({ type: 'noteOff', tick: Math.round(endTicks), note: midi, velocity: 0 });
+          }
+        }
+      }
+    }
+
+    // 4. Rummut (GM-nuotit rumpukanavalla 10 / index 9)
+    const drumsStepsCount = parseInt(document.getElementById('drumsStepsInput').value, 10) || 8;
+    const drumsRVal = Math.max(1, parseInt(document.getElementById('drumsRepetitionInput').value, 10) || 1);
+    const totalDrumBars = activeBarsCount * drumsRVal;
+    const drumTicksPerStep = ticksPerBar / drumsStepsCount;
+
+    if (drumsOn) {
+      for (let b = 0; b < totalDrumBars; b++) {
+        const rhythmBarIdx = b % activeBarsCount;
+        const kickSeq = drumSequences.kick[rhythmBarIdx];
+        const snareSeq = drumSequences.snare[rhythmBarIdx];
+        const hihatSeq = drumSequences.hihat[rhythmBarIdx];
+
+        // Kick
+        if (kickSeq) {
+          for (let s = 0; s < drumsStepsCount; s++) {
+            const val = kickSeq[s];
+            if (val > 0) {
+              const startTicks = b * ticksPerBar + s * drumTicksPerStep;
+              const durationTicks = Math.round(drumTicksPerStep * 0.9);
+              const velocity = val === 2 ? 115 : 60;
+              drumTrackEvents.push({ type: 'noteOn', tick: Math.round(startTicks), note: 36, velocity: velocity });
+              drumTrackEvents.push({ type: 'noteOff', tick: Math.round(startTicks + durationTicks), note: 36, velocity: 0 });
+            }
+          }
+        }
+
+        // Snare
+        if (snareSeq) {
+          for (let s = 0; s < drumsStepsCount; s++) {
+            const val = snareSeq[s];
+            if (val > 0) {
+              const startTicks = b * ticksPerBar + s * drumTicksPerStep;
+              const durationTicks = Math.round(drumTicksPerStep * 0.9);
+              const velocity = val === 2 ? 110 : 55;
+              drumTrackEvents.push({ type: 'noteOn', tick: Math.round(startTicks), note: 38, velocity: velocity });
+              drumTrackEvents.push({ type: 'noteOff', tick: Math.round(startTicks + durationTicks), note: 38, velocity: 0 });
+            }
+          }
+        }
+
+        // Hi-Hat
+        if (hihatSeq) {
+          for (let s = 0; s < drumsStepsCount; s++) {
+            const val = hihatSeq[s];
+            if (val > 0) {
+              const startTicks = b * ticksPerBar + s * drumTicksPerStep;
+              const isOpen = val === 2;
+              const durationTicks = Math.round(drumTicksPerStep * (isOpen ? 1.5 : 0.5));
+              const note = isOpen ? 46 : 42;
+              drumTrackEvents.push({ type: 'noteOn', tick: Math.round(startTicks), note: note, velocity: 85 });
+              drumTrackEvents.push({ type: 'noteOff', tick: Math.round(startTicks + durationTicks), note: note, velocity: 0 });
+            }
+          }
+        }
+      }
+    }
+
+    // 5. Metronomi (Optional)
+    const maxBarsToExport = Math.max(
+      activeBarsCount,
+      melodyOn ? totalMelodyBars : 0,
+      bassOn ? totalBassBars : 0,
+      drumsOn ? totalDrumBars : 0
+    );
+
+    for (let b = 0; b < maxBarsToExport; b++) {
+      for (let beat = 0; beat < num; beat++) {
+        const accent = (beat === 0);
+        const startTicks = b * ticksPerBar + beat * ticksPerBeat;
+        const durationTicks = Math.round(ticksPerBeat * 0.1);
+        const note = accent ? 76 : 77;
+
+        metronomeTrackEvents.push({ type: 'noteOn', tick: Math.round(startTicks), note: note, velocity: accent ? 100 : 70 });
+        metronomeTrackEvents.push({ type: 'noteOff', tick: Math.round(startTicks + durationTicks), note: note, velocity: 0 });
+      }
+    }
+
+    // Rakennetaan raitojen binäärit
+    const tracks = [];
+    const bpm = Math.min(240, Math.max(40, parseFloat(document.getElementById('tempo').value) || 120));
+    
+    // Raita 0 (Aika- ja temposignaalit)
+    tracks.push(serializeTrackZero(bpm, num, den));
+
+    // Raita 1: Soinnut (Kanava 1 / Indeksi 0)
+    tracks.push(serializeTrack(chordTrackEvents, 0));
+
+    // Raita 2: Melodia (Kanava 2 / Indeksi 1)
+    if (melodyOn && melodyTrackEvents.length > 0) {
+      tracks.push(serializeTrack(melodyTrackEvents, 1));
+    }
+
+    // Raita 3: Basso (Kanava 3 / Indeksi 2)
+    if (bassOn && bassTrackEvents.length > 0) {
+      tracks.push(serializeTrack(bassTrackEvents, 2));
+    }
+
+    // Raita 4: Rummut (Kanava 10 / Indeksi 9)
+    if (drumsOn && drumTrackEvents.length > 0) {
+      tracks.push(serializeTrack(drumTrackEvents, 9));
+    }
+
+    // Raita 5: Metronomi (Kanava 10 / Indeksi 9)
+    if (metronomeTrackEvents.length > 0) {
+      tracks.push(serializeTrack(metronomeTrackEvents, 9));
+    }
+
+    // Kootaan MIDI-rakenne (SMF Type 1)
+    const totalTracks = tracks.length;
+    let fileBytes = [];
+
+    // MThd Header
+    fileBytes.push(0x4D, 0x54, 0x68, 0x64); // 'MThd'
+    fileBytes.push(0x00, 0x00, 0x00, 0x06); // Otsikon koko
+    fileBytes.push(0x00, 0x01);             // SMF Tyyppi 1
+    fileBytes.push((totalTracks >> 8) & 0xFF, totalTracks & 0xFF);
+    fileBytes.push(0x01, 0xE0);             // 480 PPQ (ticks per quarter note)
+
+    // Liitetään raidat perään
+    tracks.forEach(trackBytes => {
+      fileBytes.push(0x4D, 0x54, 0x72, 0x6B); // 'MTrk'
+      const len = trackBytes.length;
+      fileBytes.push((len >> 24) & 0xFF, (len >> 16) & 0xFF, (len >> 8) & 0xFF, len & 0xFF);
+      fileBytes.push(...trackBytes);
+    });
+
+    // Tallennetaan ja ladataan tiedosto selaimessa
+    const blob = new Blob([new Uint8Array(fileBytes)], { type: 'audio/midi' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sointugeneraattori.mid';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /* =========================================================
+     INIT & KUUNTELIJAT
+     ========================================================= */
+  document.getElementById('playBtn').addEventListener('click', play);
+  document.getElementById('stopBtn').addEventListener('click', stop);
+  document.getElementById('tapBtn').addEventListener('click', handleTap);
+  document.getElementById('generateBtn').addEventListener('click', ()=>{
+    if(isPlaying){
+      pendingMode = 'simple';
+      pendingRegenerate = true;
+    } else {
+      doGenerate('simple');
+    }
+  });
+  document.getElementById('advanceBtn').addEventListener('click', ()=>{
+    if(isPlaying){
+      pendingMode = 'advanced';
+      pendingRegenerate = true;
+    } else {
+      doGenerate('advanced');
+    }
+  });
+  document.getElementById('metronomeBtn').addEventListener('click', ()=>{
+    metronomeOn = !metronomeOn;
+    document.getElementById('metronomeBtn').classList.toggle('active', metronomeOn);
+    if(metronomeOn && isPlaying && audioCtx){
+      nextClickTime = audioCtx.currentTime + 0.05;
+      clickBeatIndex = 0;
+      schedulerTick();
+    }
+  });
+
+  document.getElementById('voicingBtn').addEventListener('click', () => {
+    autoVoicing = !autoVoicing;
+    const btn = document.getElementById('voicingBtn');
+    btn.classList.toggle('active', autoVoicing);
+    btn.textContent = autoVoicing ? '⚛ Voicing: ON' : '⚛ Voicing: OFF';
+    lastPlayedMidiNotes = [];
+  });
+
+  document.getElementById('styleSelect').addEventListener('change', () => {
+    activeStyleValue = document.getElementById('styleSelect').value;
+  });
+
+  document.getElementById('transposeDownBtn').addEventListener('click', () => {
+    applyTransposition(-1);
+    updateTransposedUI();
+  });
+  document.getElementById('transposeUpBtn').addEventListener('click', () => {
+    applyTransposition(1);
+    updateTransposedUI();
+  });
+
+  document.getElementById('melodyToggleBtn').addEventListener('click', () => {
+    melodyOn = !melodyOn;
+    const btn = document.getElementById('melodyToggleBtn');
+    const wrap = document.getElementById('melodyControlsWrap');
+    
+    btn.textContent = melodyOn ? 'Melodia: ON' : 'Melodia: OFF';
+    btn.style.borderColor = melodyOn ? 'var(--cyan)' : 'var(--line)';
+    btn.style.color = melodyOn ? 'var(--cyan)' : 'var(--text)';
+    wrap.style.display = melodyOn ? 'flex' : 'none';
+
+    if (melodyOn) {
+      syncMelodySequences();
+      pregenerateMelodyPitches();
+      renderMelodyPitches();
+      renderSequencer();
+    } else {
+      melodyStepCursor = 0;
+      melodyBarCursor = 0;
+    }
+  });
+
+  document.getElementById('melodyMotifBtn').addEventListener('click', () => {
+    melodyMotifOn = !melodyMotifOn;
+    const btn = document.getElementById('melodyMotifBtn');
+    btn.textContent = melodyMotifOn ? 'Motiivi: ON' : 'Motiivi: OFF';
+    
+    if (melodyMotifOn) {
+      btn.style.backgroundColor = 'rgba(55,245,255,0.15)';
+      btn.style.borderColor = 'var(--cyan)';
+      btn.style.boxShadow = '0 0 10px rgba(55,245,255,0.3)';
+      
+      generateMotifMelody();
+      if (melodyOn) {
+        renderSequencer();
+      }
+    } else {
+      btn.style.backgroundColor = '';
+      btn.style.borderColor = '';
+      btn.style.boxShadow = '';
+    }
+  });
+
+  document.getElementById('melodyStepsInput').addEventListener('input', () => {
+    syncMelodySequences();
+    pregenerateMelodyPitches();
+    if (melodyOn) {
+      renderSequencer();
+    }
+  });
+
+  document.getElementById('melodyRepetitionInput').addEventListener('input', () => {
+    pregenerateMelodyPitches();
+    melodyStepCursor = 0;
+    melodyBarCursor = 0;
+    if (isPlaying && audioCtx) {
+      nextMelodyStepTime = audioCtx.currentTime + 0.05;
+    }
+  });
+
+  document.getElementById('randomizeAllMelodiesBtn').addEventListener('click', () => {
+    if (melodyMotifOn) {
+      generateMotifMelody();
+    } else {
+      melodySequences.forEach((_, barIdx) => {
+        randomizeSequence(barIdx);
+      });
+      pregenerateMelodyPitches();
+    }
+  });
+
+  document.getElementById('bassToggleBtn').addEventListener('click', () => {
+    bassOn = !bassOn;
+    const btn = document.getElementById('bassToggleBtn');
+    const wrap = document.getElementById('bassControlsWrap');
+    
+    btn.textContent = bassOn ? 'Basso: ON' : 'Basso: OFF';
+    btn.style.borderColor = bassOn ? 'var(--magenta)' : 'var(--line)';
+    btn.style.color = bassOn ? 'var(--magenta)' : 'var(--text)';
+    wrap.style.display = bassOn ? 'flex' : 'none';
+
+    if (bassOn) {
+      syncBassSequences();
+      pregenerateBassPitches();
+      renderBassPitches();
+      renderBassSequencer();
+    } else {
+      bassStepCursor = 0;
+      bassBarCursor = 0;
+    }
+  });
+
+  document.getElementById('bassPatternLockBtn').addEventListener('click', () => {
+    bassPatternLockOn = !bassPatternLockOn;
+    const btn = document.getElementById('bassPatternLockBtn');
+    btn.textContent = bassPatternLockOn ? 'Kuvio lukittu: ON' : 'Kuvio lukittu: OFF';
+    
+    if (bassPatternLockOn) {
+      btn.style.backgroundColor = 'rgba(255,62,201,0.15)';
+      btn.style.borderColor = 'var(--magenta)';
+      btn.style.boxShadow = '0 0 10px rgba(255,62,201,0.3)';
+      
+      syncBassSequences();
+      pregenerateBassPitches();
+      if (bassOn) {
+        renderBassSequencer();
+      }
+    } else {
+      btn.style.backgroundColor = '';
+      btn.style.borderColor = '';
+      btn.style.boxShadow = '';
+    }
+  });
+
+  document.getElementById('bassStepsInput').addEventListener('input', () => {
+    syncBassSequences();
+    pregenerateBassPitches();
+    if (bassOn) {
+      renderBassSequencer();
+    }
+  });
+
+  document.getElementById('bassRepetitionInput').addEventListener('input', () => {
+    pregenerateBassPitches();
+    bassStepCursor = 0;
+    bassBarCursor = 0;
+    if (isPlaying && audioCtx) {
+      nextBassStepTime = audioCtx.currentTime + 0.05;
+    }
+  });
+
+  document.getElementById('randomizeAllBassBtn').addEventListener('click', () => {
+    if (bassPatternLockOn) {
+      randomizeBassSequence(0);
+      pregenerateBassPitches();
+    } else {
+      bassSequences.forEach((_, barIdx) => {
+        randomizeBassSequence(barIdx);
+      });
+      pregenerateBassPitches();
+    }
+  });
+
+  // Rumputapahtumakuuntelijat
+  document.getElementById('drumsToggleBtn').addEventListener('click', () => {
+    drumsOn = !drumsOn;
+    const btn = document.getElementById('drumsToggleBtn');
+    const wrap = document.getElementById('drumsControlsWrap');
+    
+    btn.textContent = drumsOn ? 'Rummut: ON' : 'Rummut: OFF';
+    btn.style.borderColor = drumsOn ? 'var(--amber)' : 'var(--line)';
+    btn.style.color = drumsOn ? 'var(--amber)' : 'var(--text)';
+    wrap.style.display = drumsOn ? 'flex' : 'none';
+
+    if (drumsOn) {
+      syncDrumSequences();
+      renderDrumSequencer();
+    } else {
+      drumStepCursor = 0;
+      drumBarCursor = 0;
+    }
+  });
+
+  document.getElementById('drumsPatternLockBtn').addEventListener('click', () => {
+    drumsPatternLockOn = !drumsPatternLockOn;
+    const btn = document.getElementById('drumsPatternLockBtn');
+    btn.textContent = drumsPatternLockOn ? 'Kuvio lukittu: ON' : 'Kuvio lukittu: OFF';
+    
+    if (drumsPatternLockOn) {
+      btn.style.backgroundColor = 'rgba(255,207,92,0.15)';
+      btn.style.borderColor = 'var(--amber)';
+      btn.style.boxShadow = '0 0 10px rgba(255,207,92,0.3)';
+      
+      syncDrumSequences();
+      if (drumsOn) {
+        renderDrumSequencer();
+      }
+    } else {
+      btn.style.backgroundColor = '';
+      btn.style.borderColor = '';
+      btn.style.boxShadow = '';
+    }
+  });
+
+  document.getElementById('drumsStepsInput').addEventListener('input', () => {
+    syncDrumSequences();
+    if (drumsOn) {
+      renderDrumSequencer();
+    }
+  });
+
+  document.getElementById('drumsRepetitionInput').addEventListener('input', () => {
+    drumStepCursor = 0;
+    drumBarCursor = 0;
+    if (isPlaying && audioCtx) {
+      nextDrumStepTime = audioCtx.currentTime + 0.05;
+    }
+  });
+
+  document.getElementById('randomizeAllDrumsBtn').addEventListener('click', () => {
+    if (drumsPatternLockOn) {
+      randomizeDrumSequence('kick', 0);
+      randomizeDrumSequence('snare', 0);
+      randomizeDrumSequence('hihat', 0);
+    } else {
+      for (let b = 0; b < activeBarsCount; b++) {
+        randomizeDrumSequence('kick', b);
+        randomizeDrumSequence('snare', b);
+        randomizeDrumSequence('hihat', b);
+      }
+    }
+  });
+
+  document.getElementById('barsCount').addEventListener('input', () => {
+    const barsInput = document.getElementById('barsCount');
+    const barCount = Math.min(32, Math.max(1, parseInt(barsInput.value, 10) || 4));
+    activeBarsCount = barCount;
+    
+    syncMelodySequences();
+    pregenerateMelodyPitches();
+    if (melodyOn) {
+      renderSequencer();
+    }
+
+    syncBassSequences();
+    pregenerateBassPitches();
+    if (bassOn) {
+      renderBassSequencer();
+    }
+
+    syncDrumSequences();
+    if (drumsOn) {
+      renderDrumSequencer();
+    }
+  });
+
+  document.getElementById('exportMidiBtn').addEventListener('click', exportMidiFile);
+
+  window.addEventListener('resize', resizeRing);
+
+  applyTransposition(0);
+
+  resizeRing();
+  drawRing();
+  initVolumeControl();
+  initMIDI();
+  renderChordSelector(); 
+
+  // Alustetaan Motif-painikkeen oletustilan visuaalisuus
+  const motifBtn = document.getElementById('melodyMotifBtn');
+  if (melodyMotifOn) {
+    motifBtn.style.backgroundColor = 'rgba(55,245,255,0.15)';
+    motifBtn.style.borderColor = 'var(--cyan)';
+    motifBtn.style.boxShadow = '0 0 10px rgba(55,245,255,0.3)';
+  }
+
+  // Alustetaan Pattern Lock -painikkeen oletustilan visuaalisuus
+  const patBtn = document.getElementById('bassPatternLockBtn');
+  if (bassPatternLockOn) {
+    patBtn.style.backgroundColor = 'rgba(255,62,201,0.15)';
+    patBtn.style.borderColor = 'var(--magenta)';
+    patBtn.style.boxShadow = '0 0 10px rgba(255,62,201,0.3)';
+  }
+
+  // Alustetaan Drums Pattern Lock -painikkeen oletustilan visuaalisuus
+  const drumsPatBtn = document.getElementById('drumsPatternLockBtn');
+  if (drumsPatternLockOn) {
+    drumsPatBtn.style.backgroundColor = 'rgba(255,207,92,0.15)';
+    drumsPatBtn.style.borderColor = 'var(--amber)';
+    drumsPatBtn.style.boxShadow = '0 0 10px rgba(255,207,92,0.3)';
+  }
+  
+  syncMelodySequences();
+  pregenerateMelodyPitches();
+
+  syncBassSequences();
+  pregenerateBassPitches();
+
+  syncDrumSequences();
+})();
+</script>
+</body>
+</html>
